@@ -151,11 +151,11 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 th, td {
-  padding: 12px 10px;
+  padding: 8px 8px;
   text-align: right;
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
@@ -168,10 +168,35 @@ th {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-size: 11px;
+  font-size: 10px;
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+th:first-child, td:first-child {
+  text-align: left;
+}
+
+.theater-col {
+  font-weight: 400;
+  color: #cbd5e1;
+  max-width: 280px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.state-col, .format-col, .language-col {
+  white-space: nowrap;
+}
+
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 th:first-child, td:first-child {
