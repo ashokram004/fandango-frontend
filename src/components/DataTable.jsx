@@ -1,46 +1,89 @@
-import React from 'react';
+import { useMemo, useState } from 'react';
 
 const formatCurrency = (val) => {
-    return `$${val.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+  return `$${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
-export const DataTable = ({ title, data, isAccentName = false }) => {
+const formatNumber = (val) => Number(val).toLocaleString();
+
+const formatDeltaValue = (val) => {
+  if (val === 0) return '';
+  const sign = val > 0 ? '+' : '-';
+  return `${sign} $${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+};
+
+const getOccupancyColor = (occ) => {
+  if (occ >= 60) return "#4ade80";
+  if (occ >= 50) return "#fb923c";
+  if (occ >= 30) return "#facc15";
+  return "#f87171";
+};
+
+export const DataTable = ({ title, data, isFormat, isLanguage, isState, isTheater }) => {
+  const [showAll, setShowAll] = useState(false);
+  const rowLimit = isTheater ? 40 : 15;
+
+  const visibleRows = useMemo(() => {
+    if (showAll || data.length <= rowLimit) return data;
+    return data.slice(0, rowLimit);
+  }, [data, showAll, rowLimit]);
+
   return (
-    <div className="glass-panel table-container">
-      <h2 className="table-title">{title}</h2>
+    <div className="summary-section">
+      <h2>{title}</h2>
       <table>
         <thead>
           <tr>
             <th>Name</th>
-            <th className="align-right">Shows</th>
-            <th className="align-right">Booked</th>
-            <th className="align-right">Gross</th>
-            <th className="align-right">Occ %</th>
-            <th className="align-right">Δ Gross</th>
+            <th>Shows</th>
+            <th>Tickets</th>
+            <th>Gross</th>
+            <th>Occ %</th>
+            <th>Growth</th>
           </tr>
         </thead>
         <tbody>
-          {data.map((row, i) => {
-            const isRemaining = row.name.startsWith('Remaining');
-            const dGross = row.d_gross;
-            const deltaClass = dGross > 0 ? 'td-positive' : (dGross < 0 ? 'td-negative' : 'td-muted');
-            const deltaSign = dGross > 0 ? '+' : '';
+          {visibleRows.map((row, i) => {
+            const dGross = row.d_gross ?? 0;
+            const growthColor = dGross > 0 ? '#4ade80' : dGross < 0 ? '#f87171' : '#94a3b8';
+            
+            let nameClass = "";
+            if (isFormat) nameClass = "format-col";
+            if (isLanguage) nameClass = "language-col";
+            if (isState) nameClass = "state-col";
+            if (isTheater) nameClass = "theater-col";
 
             return (
               <tr key={i}>
-                <td className={isRemaining ? 'td-muted' : (isAccentName ? 'td-accent' : 'td-highlight')}>
-                  {row.name.length > 35 ? row.name.substring(0, 32) + '...' : row.name}
+                <td className={nameClass}>
+                  {row.name}
                 </td>
-                <td className="align-right">{row.shows.toLocaleString()}</td>
-                <td className="align-right">{row.booked.toLocaleString()}</td>
-                <td className="align-right td-highlight">{formatCurrency(row.gross)}</td>
-                <td className="align-right td-highlight">{row.occ.toFixed(1)}%</td>
-                <td className={`align-right ${deltaClass}`}>
-                  {deltaSign}{formatCurrency(dGross)}
+                <td>{formatNumber(row.shows)}</td>
+                <td>{formatNumber(row.booked)}</td>
+                <td className="gross-val">{formatCurrency(row.gross)}</td>
+                <td style={{ color: getOccupancyColor(row.occ) }}>
+                  {Number(row.occ).toFixed(1)}%
+                </td>
+                <td style={{ color: growthColor }}>
+                  {formatDeltaValue(dGross)}
                 </td>
               </tr>
             );
           })}
+          
+          {data.length > rowLimit && (
+            <tr>
+              <td colSpan={6} style={{ textAlign: 'center', padding: '18px', borderBottom: 'none' }}>
+                <button
+                  onClick={() => setShowAll((prev) => !prev)}
+                  className="btn-toggle"
+                  style={{ width: 'auto', padding: '10px 18px' }}
+                >
+                  {showAll ? 'Hide Full List' : 'Show Full List'}
+                </button>
+              </td>
+            </tr>
+          )}
         </tbody>
       </table>
     </div>

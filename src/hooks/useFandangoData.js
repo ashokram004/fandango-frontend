@@ -10,6 +10,8 @@ export const useFandangoData = () => {
     loading: true,
     kpis: null,
     tables: null,
+    rawRows: [],
+    filteredKpis: null,
     metadata: null,
     error: null
   });
@@ -25,8 +27,64 @@ export const useFandangoData = () => {
     const process = () => {
       if (!currentData || !snapshotData) return;
 
-      const rawCurrent = currentData.data || [];
-      const rawSnapshot = snapshotData.data || [];
+      const toArray = (value) => {
+        if (Array.isArray(value)) return value;
+        if (!value) return [];
+        return Object.values(value);
+      };
+
+      const normalizeNumber = (value) => {
+        const normalized = Number(value);
+        return Number.isFinite(normalized) ? normalized : 0;
+      };
+
+      const rawCurrent = toArray(currentData.data || currentData);
+      const rawSnapshot = toArray(snapshotData.data || snapshotData);
+
+      const getChainCategory = (theaterName) => {
+        const name = (theaterName || '').toUpperCase();
+        if (name.includes('AMC')) return 'AMC Theatres';
+        if (name.includes('CINEMARK') || name.includes('CENTURY')) return 'Cinemark';
+        if (name.includes('REGAL')) return 'Regal Cinemas';
+        if (name.includes('MARCUS')) return 'Marcus Theatres';
+        if (name.includes('HARKINS')) return 'Harkins Theatres';
+        if (name.includes('APPLE CINEMAS')) return 'Apple Cinemas';
+        return 'Other / Independents';
+      };
+
+      const getTimeCategory = (timeStr) => {
+        try {
+          const clean = (timeStr || 'Unknown').trim();
+          const cleanTime = clean.replace(/\s*o'clock\s*/gi, ':00 ');
+          const t = new Date(`2000-01-01T${cleanTime}`);
+          const hours = Number.isFinite(t.getTime()) ? t.getHours() : null;
+          // fallback: if parse fails, try manual patterns like `3:05 PM`
+          if (hours === null) {
+            const m = cleanTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+            if (!m) return '7. Unknown Time';
+            let h = parseInt(m[1], 10);
+            const ampm = m[3].toUpperCase();
+            if (ampm === 'PM' && h !== 12) h += 12;
+            if (ampm === 'AM' && h === 12) h = 0;
+            // categorize
+            if (h >= 5 && h < 9) return '1. Early Morning (5am-9am)';
+            if (h >= 9 && h < 12) return '2. Morning (9am-12pm)';
+            if (h >= 12 && h < 16) return '3. Afternoon (12pm-4pm)';
+            if (h >= 16 && h < 20) return '4. Evening (4pm-8pm)';
+            if (h >= 20 && h < 24) return '5. Night (8pm-12am)';
+            return '6. Midnight (12am-5am)';
+          }
+
+          if (hours >= 5 && hours < 9) return '1. Early Morning (5am-9am)';
+          if (hours >= 9 && hours < 12) return '2. Morning (9am-12pm)';
+          if (hours >= 12 && hours < 16) return '3. Afternoon (12pm-4pm)';
+          if (hours >= 16 && hours < 20) return '4. Evening (4pm-8pm)';
+          if (hours >= 20 && hours < 24) return '5. Night (8pm-12am)';
+          return '6. Midnight (12am-5am)';
+        } catch {
+          return '7. Unknown Time';
+        }
+      };
 
       // --- Helper to aggregate data ---
       const aggregate = (dataset) => {
@@ -46,51 +104,48 @@ export const useFandangoData = () => {
         };
 
         dataset.forEach(row => {
+          const gross = normalizeNumber(row.gross);
+          const booked = normalizeNumber(row.booked);
+          const tickets = normalizeNumber(row.total);
           const isExtra = row.is_extra || row.t_id === 'EXTRA';
-          
-          // KPIs included for all (including EXTRA)
-          totalGross += (row.gross || 0);
-          totalTickets += (row.booked || 0);
+
+          totalGross += gross;
+          totalTickets += tickets;
 
           if (!isExtra) {
             validShows += 1;
             validVenues.add(row.t_id);
-            validCapacity += (row.total || 0);
-            validBooked += (row.booked || 0);
+            validCapacity += tickets;
+            validBooked += booked;
 
-            // Grouping logic
             const format = row.format?.includes('D-Box') && row.format?.includes('Premium') ? 'Premium' : (row.format || 'Unknown');
             const lang = row.language || 'Unknown';
             const state = row.state || 'Unknown';
             const theater = row.theater || 'Unknown';
 
-            // Format
-            if (!summary.formats[format]) summary.formats[format] = { name: format, shows: 0, tickets: 0, booked: 0, gross: 0 };
+            if (!summary.formats[format]) summary.formats[format] = { name: format, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
             summary.formats[format].shows += 1;
-            summary.formats[format].tickets += (row.total || 0);
-            summary.formats[format].booked += (row.booked || 0);
-            summary.formats[format].gross += (row.gross || 0);
+            summary.formats[format].tickets += tickets;
+            summary.formats[format].booked += booked;
+            summary.formats[format].gross += gross;
 
-            // Language
-            if (!summary.languages[lang]) summary.languages[lang] = { name: lang, shows: 0, tickets: 0, booked: 0, gross: 0 };
+            if (!summary.languages[lang]) summary.languages[lang] = { name: lang, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
             summary.languages[lang].shows += 1;
-            summary.languages[lang].tickets += (row.total || 0);
-            summary.languages[lang].booked += (row.booked || 0);
-            summary.languages[lang].gross += (row.gross || 0);
+            summary.languages[lang].tickets += tickets;
+            summary.languages[lang].booked += booked;
+            summary.languages[lang].gross += gross;
 
-            // State
-            if (!summary.states[state]) summary.states[state] = { name: state, shows: 0, tickets: 0, booked: 0, gross: 0 };
+            if (!summary.states[state]) summary.states[state] = { name: state, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
             summary.states[state].shows += 1;
-            summary.states[state].tickets += (row.total || 0);
-            summary.states[state].booked += (row.booked || 0);
-            summary.states[state].gross += (row.gross || 0);
+            summary.states[state].tickets += tickets;
+            summary.states[state].booked += booked;
+            summary.states[state].gross += gross;
 
-            // Theater
-            if (!summary.theaters[row.t_id]) summary.theaters[row.t_id] = { id: row.t_id, name: theater, shows: 0, tickets: 0, booked: 0, gross: 0 };
+            if (!summary.theaters[row.t_id]) summary.theaters[row.t_id] = { id: row.t_id, name: theater, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
             summary.theaters[row.t_id].shows += 1;
-            summary.theaters[row.t_id].tickets += (row.total || 0);
-            summary.theaters[row.t_id].booked += (row.booked || 0);
-            summary.theaters[row.t_id].gross += (row.gross || 0);
+            summary.theaters[row.t_id].tickets += tickets;
+            summary.theaters[row.t_id].booked += booked;
+            summary.theaters[row.t_id].gross += gross;
           }
         });
 
@@ -108,6 +163,16 @@ export const useFandangoData = () => {
       const curr = aggregate(rawCurrent);
       const snap = aggregate(rawSnapshot);
 
+      const getSnapshotItem = (item, snapDict, isTheater) => {
+        if (isTheater) {
+          return Object.values(snapDict).find((x) => x.id === item.id) || null;
+        }
+
+        if (snapDict[item.name]) return snapDict[item.name];
+
+        return Object.values(snapDict).find((x) => x.name?.toString().toLowerCase() === item.name?.toString().toLowerCase()) || null;
+      };
+
       // --- Build Deltas ---
       const kpis = {
         totalGross: { val: curr.totalGross, delta: curr.totalGross - snap.totalGross },
@@ -117,31 +182,60 @@ export const useFandangoData = () => {
         occupancy: { val: curr.occupancy, capacity: curr.totalCapacity }
       };
 
-      const buildTable = (currDict, snapDict, isTheater = false) => {
-        const list = Object.values(currDict).map(item => {
-          const sItem = isTheater ? Object.values(snapDict).find(x => x.id === item.id) : snapDict[item.name];
-          const d_gross = item.gross - (sItem ? sItem.gross : 0);
-          const d_booked = item.booked - (sItem ? sItem.booked : 0);
-          const occ = item.tickets > 0 ? (item.booked / item.tickets) * 100 : 0;
-          return { ...item, d_gross, d_booked, occ };
-        }).sort((a, b) => b.gross - a.gross);
+      // --- Build Raw Rows (used for reactive filtering table) ---
+      const normalizeFormat = (fmt) => {
+        const f = fmt || 'Standard';
+        return f?.includes('D-Box') && f?.includes('Premium') ? 'Premium' : f;
+      };
 
-        const limit = 15;
-        if (list.length > limit) {
-          const top = list.slice(0, limit);
-          const rem = list.slice(limit);
-          const remAgg = {
-            name: `Remaining ${rem.length} ${isTheater ? 'Theaters' : 'States'}`,
-            shows: rem.reduce((s, x) => s + x.shows, 0),
-            tickets: rem.reduce((s, x) => s + x.tickets, 0),
-            booked: rem.reduce((s, x) => s + x.booked, 0),
-            gross: rem.reduce((s, x) => s + x.gross, 0),
-            d_gross: rem.reduce((s, x) => s + x.d_gross, 0)
-          };
-          remAgg.occ = remAgg.tickets > 0 ? (remAgg.booked / remAgg.tickets) * 100 : 0;
-          return [...top, remAgg];
-        }
-        return list;
+      const rawRows = rawCurrent.map((row) => {
+        const format = normalizeFormat(row.format);
+        const state = row.state || 'Unknown';
+        const theater = row.theater || 'Unknown';
+        const chain = getChainCategory(theater);
+        const time = row.time || 'Unknown';
+        const timeCat = getTimeCategory(time);
+
+        const total = normalizeNumber(row.total);
+        const booked = normalizeNumber(row.booked);
+        const gross = normalizeNumber(row.gross);
+
+        const occ = total > 0 ? (booked / total) * 100 : 0;
+
+        const status = row.status || 'Available';
+        const price_str = row.price_str || '$0.00';
+        const language = row.language || 'Unknown';
+        const is_extra = !!(row.is_extra || row.t_id === 'EXTRA');
+
+        return {
+          t_id: row.t_id || '',
+          id: `${row.t_id || ''}_${row.time || ''}_${format || ''}_${language || ''}_${theater || ''}`,
+          state,
+          theater,
+          format,
+          language,
+          time,
+          timeCat,
+          chain,
+          status,
+          price_str,
+          total,
+          booked,
+          gross,
+          occ,
+          is_extra
+        };
+      });
+
+      const buildTable = (currDict, snapDict, isTheater = false) => {
+        return Object.values(currDict).map((item) => {
+          const sItem = getSnapshotItem(item, snapDict, isTheater);
+          const d_gross = normalizeNumber(item.gross) - normalizeNumber(sItem?.gross);
+          const d_booked = normalizeNumber(item.booked) - normalizeNumber(sItem?.booked);
+          const d_tickets = normalizeNumber(item.tickets) - normalizeNumber(sItem?.tickets);
+          const occ = normalizeNumber(item.tickets) > 0 ? (normalizeNumber(item.booked) / normalizeNumber(item.tickets)) * 100 : 0;
+          return { ...item, d_gross, d_booked, d_tickets, occ };
+        }).sort((a, b) => b.gross - a.gross);
       };
 
       const tables = {
@@ -151,10 +245,31 @@ export const useFandangoData = () => {
         theaters: buildTable(curr.summary.theaters, snap.summary.theaters, true)
       };
 
+      const filteredRowsBase = rawRows.filter((r) => !r.is_extra);
+      const computeFilteredKpis = (rows) => {
+        const totalTickets = rows.reduce((s, r) => s + (r.total || 0), 0);
+        const totalBooked = rows.reduce((s, r) => s + (r.booked || 0), 0);
+        const totalGross = rows.reduce((s, r) => s + (r.gross || 0), 0);
+        const venues = new Set(rows.map((r) => r.t_id).filter(Boolean));
+        const occupancy = totalTickets > 0 ? (totalBooked / totalTickets) * 100 : 0;
+        return {
+          totalTickets,
+          totalBooked,
+          totalGross,
+          shows: rows.length,
+          venues: venues.size,
+          occupancy
+        };
+      };
+
+      const initialFilteredKpis = computeFilteredKpis(filteredRowsBase);
+
       setData({
         loading: false,
         kpis,
         tables,
+        rawRows,
+        filteredKpis: initialFilteredKpis,
         metadata: {
           lastUpdated: lastUpdated,
           showDate: SHOW_DATE

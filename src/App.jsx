@@ -1,53 +1,106 @@
-import React from 'react';
 import { useFandangoData } from './hooks/useFandangoData';
 import { KPIGrid } from './components/KPIGrid';
 import { DataTable } from './components/DataTable';
-import './App.css'; // Make sure the styles are imported
+import { ShowsTable } from './components/ShowsTable';
+import { FilterPanel } from './components/FilterPanel';
+import './App.css';
+import { useMemo, useState } from 'react';
 
 function App() {
-  const { loading, kpis, tables, metadata, error } = useFandangoData();
+  const { loading, kpis, tables, metadata, error, rawRows } = useFandangoData();
+
+  const [showFilters, setShowFilters] = useState(true);
+  const [filters, setFilters] = useState({
+    state: 'ALL',
+    chain: 'ALL',
+    theater: 'ALL',
+    format: 'ALL',
+    language: 'ALL',
+    timeCat: 'ALL'
+  });
+
+  const allRows = useMemo(() => rawRows || [], [rawRows]);
+
+  const filteredRows = useMemo(() => {
+    return allRows.filter((r) => {
+      if (filters.state !== 'ALL' && r.state !== filters.state) return false;
+      if (filters.chain !== 'ALL' && r.chain !== filters.chain) return false;
+      if (filters.theater !== 'ALL' && r.theater !== filters.theater) return false;
+      if (filters.format !== 'ALL' && r.format !== filters.format) return false;
+      if (filters.language !== 'ALL' && r.language !== filters.language) return false;
+      if (filters.timeCat !== 'ALL' && r.timeCat !== filters.timeCat) return false;
+      return true;
+    });
+  }, [allRows, filters]);
 
   if (error) {
-    return <div className="error-message">Error: {error}</div>;
+    return <div style={{ color: '#f87171', padding: '20px' }}>Error: {error}</div>;
   }
 
   if (loading) {
-    return <div className="loading-message">Loading Fandango Data...</div>;
+    return <div style={{ color: '#f8fafc', padding: '20px' }}>Loading Fandango Data...</div>;
   }
 
   return (
-    <div className="app-container">
-      <header className="app-header">
-        <h1>Fandango Dashboard</h1>
-        {metadata && (
-          <div className="metadata">
-            <p><strong>Show Date:</strong> {metadata.showDate}</p>
-            <p><strong>Last Updated:</strong> {metadata.lastUpdated}</p>
-          </div>
-        )}
-      </header>
-
-      <main className="app-content">
-        <KPIGrid kpis={kpis} />
+    <div id="app">
+      <div className="container">
         
-        <div className="tables-grid">
-          {tables?.formats && (
-            <DataTable title="By Format" data={tables.formats} />
-          )}
-          {tables?.languages && (
-            <DataTable title="By Language" data={tables.languages} />
+        {/* HEADER */}
+        <div className="header">
+          <h1>Advance Sales Dashboard</h1>
+          {metadata && (
+            <div className="header-meta">
+              Show Date: <strong>{metadata.showDate}</strong>
+              <br />
+              Last tracked: <strong>{metadata.lastUpdated}</strong>
+            </div>
           )}
         </div>
 
-        <div className="tables-grid">
-          {tables?.states && (
-            <DataTable title="By State" data={tables.states} />
-          )}
-          {tables?.theaters && (
-             <DataTable title="By Theater" data={tables.theaters} isAccentName={true} />
-          )}
+        {/* FILTER TOGGLE */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+          <button
+            onClick={() => setShowFilters((v) => !v)}
+            className="toggle-filter-btn"
+          >
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
         </div>
-      </main>
+
+        {/* FILTER PANEL */}
+        {allRows.length > 0 && (
+          <FilterPanel
+            rawRows={allRows}
+            filters={filters}
+            setFilters={setFilters}
+            showFilters={showFilters}
+          />
+        )}
+
+        {/* KPI GRID */}
+        <KPIGrid kpis={kpis} />
+
+        {/* DASHBOARD ROWS */}
+        <div className="dashboard-row">
+          {tables?.formats && <DataTable title="Format Distribution" data={tables.formats} isFormat />}
+          {tables?.languages && <DataTable title="Language Distribution" data={tables.languages} isLanguage />}
+        </div>
+
+        <div className="dashboard-row">
+          {tables?.states && <DataTable title="State Distribution" data={tables.states} isState />}
+          {tables?.theaters && <DataTable title="Top Theatres" data={tables.theaters} isTheater />}
+        </div>
+
+        {/* SHOWS TABLE - using a full-width dashboard row */}
+        <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
+          <ShowsTable rows={filteredRows} />
+        </div>
+
+        <div className="footer">
+          Fandango data dashboard • Elegant visual report with growth insights
+        </div>
+
+      </div>
     </div>
   );
 }
