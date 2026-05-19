@@ -190,11 +190,15 @@ table {
   text-align: left;
 }
 
-th {
+thead {
+  background: rgb(0, 0, 0);
   position: sticky;
   top: 0;
-  z-index: 10;
-  background: #161922; /* Solid dark color to prevent scrolling rows from showing through */
+  z-index: 20;
+}
+
+th {
+  background: rgb(0, 0, 0);
   color: var(--text-muted);
   font-weight: 600;
   font-size: 1.1rem;
