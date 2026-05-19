@@ -90,6 +90,7 @@ export const useFandangoData = () => {
       const aggregate = (dataset) => {
         let totalGross = 0;
         let totalTickets = 0;
+        let totalBooked = 0;
         
         let validShows = 0;
         let validVenues = new Set();
@@ -111,6 +112,7 @@ export const useFandangoData = () => {
 
           totalGross += gross;
           totalTickets += tickets;
+          totalBooked += booked;
 
           if (!isExtra) {
             validShows += 1;
@@ -152,6 +154,7 @@ export const useFandangoData = () => {
         return {
           totalGross,
           totalTickets,
+          totalBooked,
           totalShows: validShows,
           totalVenues: validVenues.size,
           occupancy: validCapacity > 0 ? (validBooked / validCapacity) * 100 : 0,
@@ -177,6 +180,7 @@ export const useFandangoData = () => {
       const kpis = {
         totalGross: { val: curr.totalGross, delta: curr.totalGross - snap.totalGross },
         totalTickets: { val: curr.totalTickets, delta: curr.totalTickets - snap.totalTickets },
+        totalBooked: { val: curr.totalBooked, delta: curr.totalBooked - snap.totalBooked },
         totalVenues: { val: curr.totalVenues, delta: curr.totalVenues - snap.totalVenues },
         totalShows: { val: curr.totalShows, delta: curr.totalShows - snap.totalShows },
         occupancy: { val: curr.occupancy, capacity: curr.totalCapacity }

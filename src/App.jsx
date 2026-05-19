@@ -46,26 +46,55 @@ function App() {
     let totalTickets = 0;
     let totalBooked = 0;
     const venues = new Set();
+    
+    let sTotalGross = 0;
+    let sTotalTickets = 0;
+    let sTotalBooked = 0;
+    const sVenues = new Set();
+    let sShows = 0;
 
     rows.forEach((r) => {
       const gross = Number(r.gross || 0);
       const tickets = Number(r.total || 0);
       const booked = Number(r.booked || 0);
-      const occ = tickets > 0 ? (booked / tickets) * 100 : 0;
+      
+      const s_gross = Number(r.s_gross || 0);
+      const s_tickets = Number(r.s_total || 0);
+      const s_booked = Number(r.s_booked || 0);
+
       totalGross += gross;
       totalTickets += tickets;
       totalBooked += booked;
+      
+      sTotalGross += s_gross;
+      sTotalTickets += s_tickets;
+      sTotalBooked += s_booked;
+
       if (r.t_id) venues.add(r.t_id);
+      
+      if (r.has_snapshot) {
+         sShows += 1;
+         if (r.t_id) sVenues.add(r.t_id);
+      }
 
       const addItem = (dict, key, label) => {
         if (!dict[key]) {
-          dict[key] = { name: label, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0, occ: 0, id: key };
+          dict[key] = { name: label, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0, occ: 0, id: key, s_gross: 0, s_booked: 0, s_tickets: 0 };
         }
         dict[key].shows += 1;
         dict[key].tickets += tickets;
         dict[key].booked += booked;
         dict[key].gross += gross;
+        
+        dict[key].s_gross += s_gross;
+        dict[key].s_booked += s_booked;
+        dict[key].s_tickets += s_tickets;
+
         dict[key].occ = dict[key].tickets > 0 ? (dict[key].booked / dict[key].tickets) * 100 : 0;
+        
+        dict[key].d_gross = dict[key].gross - dict[key].s_gross;
+        dict[key].d_booked = dict[key].booked - dict[key].s_booked;
+        dict[key].d_tickets = dict[key].tickets - dict[key].s_tickets;
       };
 
       addItem(summary.formats, r.format || 'Unknown', r.format || 'Unknown');
@@ -78,10 +107,11 @@ function App() {
 
     return {
       kpis: {
-        totalGross: { val: totalGross, delta: 0 },
-        totalTickets: { val: totalTickets, delta: 0 },
-        totalVenues: { val: venues.size, delta: 0 },
-        totalShows: { val: rows.length, delta: 0 },
+        totalGross: { val: totalGross, delta: totalGross - sTotalGross },
+        totalTickets: { val: totalTickets, delta: totalTickets - sTotalTickets },
+        totalBooked: { val: totalBooked, delta: totalBooked - sTotalBooked },
+        totalVenues: { val: venues.size, delta: venues.size - sVenues.size },
+        totalShows: { val: rows.length, delta: rows.length - sShows },
         occupancy: { val: totalTickets > 0 ? (totalBooked / totalTickets) * 100 : 0 }
       },
       tables: {
