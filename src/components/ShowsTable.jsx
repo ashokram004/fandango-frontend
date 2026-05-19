@@ -49,10 +49,10 @@ export const ShowsTable = ({ rows }) => {
     return copy;
   }, [rows, sortKey, sortDir]);
 
-  const th = (key, label) => (
+  const th = (key, label, align = 'left') => (
     <th
       onClick={() => onSortKey?.(key)}
-      style={{ cursor: 'pointer' }}
+      style={{ cursor: 'pointer', textAlign: align }}
     >
       {label} {sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : ''}
     </th>
@@ -63,7 +63,7 @@ export const ShowsTable = ({ rows }) => {
       <h2>
         All Showtimes
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          {sorted.length.toLocaleString()} shows
+          {(sorted.length-1).toLocaleString()} shows | Click on any column heading to sort
         </span>
       </h2>
 
@@ -71,17 +71,17 @@ export const ShowsTable = ({ rows }) => {
         <table>
           <thead>
             <tr>
-              {th('state', 'St')}
-              {th('format', 'Format')}
-              {th('language', 'Language')}
-              {th('theater', 'Theatre')}
-              {th('time', 'Time')}
-              {th('timeCat', 'Time Category')}
-              {th('status', 'Status')}
-              {th('price_str', 'Price')}
-              {th('booked', 'Tickets')}
-              {th('gross', 'Gross')}
-              {th('occ', 'Occ %')}
+              {th('state', 'St', 'left')}
+              {th('format', 'Format', 'left')}
+              {th('language', 'Language', 'left')}
+              {th('theater', 'Theatre', 'left')}
+              {th('time', 'Time', 'left')}
+              {th('timeCat', 'Time Category', 'left')}
+              {th('status', 'Status', 'left')}
+              {th('price_str', 'Price', 'right')}
+              {th('booked', 'Tickets', 'right')}
+              {th('gross', 'Gross', 'right')}
+              {th('occ', 'Occ %', 'right')}
             </tr>
           </thead>
           <tbody>
@@ -98,10 +98,10 @@ export const ShowsTable = ({ rows }) => {
                 <td style={{ textAlign: 'left' }}>
                   <span className={statusClass(r.status)}>{r.status}</span>
                 </td>
-                <td style={{ color: 'var(--text-muted)', textAlign: 'left' }}>{r.price_str}</td>
-                <td>{(r.booked || 0).toLocaleString()}</td>
-                <td className="gross-val">{formatCurrency(r.gross || 0)}</td>
-                <td style={{ color: getOccupancyColor(r.occ || 0) }}>
+                <td style={{ color: 'var(--text-muted)', textAlign: 'right' }}>{r.price_str}</td>
+                <td style={{ textAlign: 'right' }}>{(r.booked || 0).toLocaleString()}</td>
+                <td className="gross-val" style={{ textAlign: 'right' }}>{formatCurrency(r.gross || 0)}</td>
+                <td style={{ color: getOccupancyColor(r.occ || 0), textAlign: 'right' }}>
                   {Number(r.occ || 0).toFixed(1)}%
                 </td>
               </tr>

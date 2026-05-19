@@ -1,17 +1,26 @@
 import { useMemo } from 'react';
 
+const parseNumber = (val) => {
+  if (val === null || val === undefined) return 0;
+  if (typeof val === 'number') return val;
+  const str = String(val).replace(/[^0-9.-]+/g, '');
+  const num = Number(str);
+  return Number.isFinite(num) ? num : 0;
+};
+
 const formatCurrency = (val) => {
-  if (!Number.isFinite(Number(val))) return '$0';
-  const n = Number(val);
+  const n = parseNumber(val);
+  if (n === 0) return '$0';
   if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
   if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
   return `$${n.toFixed(2)}`;
 };
 
 const getOccupancyColor = (occ) => {
-  if (occ >= 60) return '#4ade80';
-  if (occ >= 50) return '#fb923c';
-  if (occ >= 30) return '#facc15';
+  const n = parseNumber(occ);
+  if (n >= 60) return '#4ade80';
+  if (n >= 50) return '#fb923c';
+  if (n >= 30) return '#facc15';
   return '#f87171';
 };
 
@@ -67,15 +76,15 @@ export const HistoryTable = ({ data }) => {
                 <td style={{ textAlign: 'left', color: 'var(--text-muted)' }}>
                   {formatToIst(r.timestamp)}
                 </td>
-                <td className="gross-val">{formatCurrency(r.total_gross || r.totalGross || 0)}</td>
-                <td>{(r.booked_tickets || r.bookedTickets || 0).toLocaleString()}</td>
-                <td>{(r.venues || 0).toLocaleString()}</td>
-                <td>{(r.shows || 0).toLocaleString()}</td>
-                <td style={{ color: getOccupancyColor(r.occupancy || 0) }}>
-                  {Number(r.occupancy || 0).toFixed(1)}%
+                <td className="gross-val">{formatCurrency(r.total_gross ?? r.totalGross ?? 0)}</td>
+                <td>{parseNumber(r.booked_tickets ?? r.bookedTickets ?? 0).toLocaleString()}</td>
+                <td>{parseNumber(r.venues ?? 0).toLocaleString()}</td>
+                <td>{parseNumber(r.shows ?? 0).toLocaleString()}</td>
+                <td style={{ color: getOccupancyColor(r.occupancy ?? 0) }}>
+                  {parseNumber(r.occupancy ?? 0).toFixed(1)}%
                 </td>
-                <td style={{ color: (r.growth || 0) > 0 ? '#4ade80' : (r.growth || 0) < 0 ? '#f87171' : 'inherit', fontWeight: 'bold' }}>
-                  {(r.growth || 0) > 0 ? '+' : ''}{formatCurrency(r.growth || 0)}
+                <td style={{ color: parseNumber(r.growth ?? 0) > 0 ? '#4ade80' : parseNumber(r.growth ?? 0) < 0 ? '#f87171' : 'inherit', fontWeight: 'bold' }}>
+                  {parseNumber(r.growth ?? 0) > 0 ? '+' : ''}{formatCurrency(r.growth ?? 0)}
                 </td>
               </tr>
             ))}
