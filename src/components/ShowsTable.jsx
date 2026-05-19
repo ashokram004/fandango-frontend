@@ -63,7 +63,7 @@ export const ShowsTable = ({ rows }) => {
       <h2>
         All Showtimes
         <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-          {sorted.length.toLocaleString()} rows
+          {sorted.length.toLocaleString()} shows
         </span>
       </h2>
 

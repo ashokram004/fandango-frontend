@@ -23,6 +23,71 @@ export const useFandangoData = () => {
     let currentData = null;
     let snapshotData = null;
     let lastUpdated = 'N/A';
+    let growthSince = 'N/A';
+
+    const formatUtcToIst = (value) => {
+      // Expecting UTC timestamp string/number in `last_snapshot/timestamp`
+      // Convert to IST: Asia/Kolkata
+      try {
+        if (value === null || value === undefined || value === '') return 'N/A';
+        const ms = typeof value === 'number' ? value : Date.parse(String(value));
+        if (!Number.isFinite(ms)) return 'N/A';
+        return new Date(ms).toLocaleString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          year: 'numeric',
+          month: 'short',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: true
+        });
+        return new Date(ms).toLocaleString();
+      } catch {
+        return 'N/A';
+      }
+    };
+
+    function formatDate(input) {
+      // Split date and time
+      const [datePart, timePart, meridian] = input.split(" ");
+
+      // Parse date
+      const [day, month, year] = datePart.replace(",", "").split("/");
+
+      // Parse time
+      let [hours, minutes, seconds] = timePart.split(":").map(Number);
+
+      // Convert to 24-hour for Date object
+      if (meridian.toLowerCase() === "pm" && hours !== 12) {
+          hours += 12;
+      }
+
+      if (meridian.toLowerCase() === "am" && hours === 12) {
+          hours = 0;
+      }
+
+      const date = new Date(year, month - 1, day, hours, minutes, seconds);
+
+      const months = [
+          "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+          "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+      ];
+
+      const formattedDay = date.getDate();
+      const formattedMonth = months[date.getMonth()];
+      const formattedYear = date.getFullYear();
+
+      let displayHours = date.getHours();
+      const displayMinutes = String(date.getMinutes()).padStart(2, "0");
+      const displaySeconds = String(date.getSeconds()).padStart(2, "0");
+
+      const ampm = displayHours >= 12 ? "pm" : "am";
+
+      displayHours = displayHours % 12 || 12;
+
+      return `${formattedDay} ${formattedMonth} ${formattedYear}, ${displayHours}:${displayMinutes}:${displaySeconds} ${ampm}`;
+    }
 
     const process = () => {
       if (!currentData || !snapshotData) return;
@@ -275,7 +340,8 @@ export const useFandangoData = () => {
         rawRows,
         filteredKpis: initialFilteredKpis,
         metadata: {
-          lastUpdated: lastUpdated,
+          lastUpdated: formatDate(lastUpdated),
+          growthSince: growthSince,
           showDate: SHOW_DATE
         },
         error: null
@@ -295,6 +361,12 @@ export const useFandangoData = () => {
 
     const unsubSnapshot = onValue(snapshotRef, (snapshot) => {
       snapshotData = snapshot.val() || { data: [] };
+
+      // `last_snapshot/timestamp` is UTC; convert for display
+      if (snapshotData?.timestamp) {
+        growthSince = formatUtcToIst(snapshotData.timestamp);
+      }
+
       process();
     });
 

@@ -21,7 +21,7 @@ const getOccupancyColor = (occ) => {
 
 export const DataTable = ({ title, data, isFormat, isLanguage, isState, isTheater }) => {
   const [showAll, setShowAll] = useState(false);
-  const rowLimit = isTheater ? 40 : 15;
+  const rowLimit = 20;
 
   const visibleRows = useMemo(() => {
     if (showAll || data.length <= rowLimit) return data;
