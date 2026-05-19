@@ -48,39 +48,21 @@ export const useFandangoData = () => {
       }
     };
 
-    function formatDate(input) {
-      // Split date and time
-      const [datePart, timePart, meridian] = input.split(" ");
-
-      // Parse date
-      const [day, month, year] = datePart.replace(",", "").split("/");
-
-      // Parse time
-      let [hours, minutes, seconds] = timePart.split(":").map(Number);
-
-      // Convert to 24-hour for Date object
-      if (meridian.toLowerCase() === "pm" && hours !== 12) {
-          hours += 12;
-      }
-
-      if (meridian.toLowerCase() === "am" && hours === 12) {
-          hours = 0;
-      }
-
-      const date = new Date(year, month - 1, day, hours, minutes, seconds);
+    function formatDate(dateObj) {
+      if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) return 'N/A';
 
       const months = [
           "Jan", "Feb", "Mar", "Apr", "May", "Jun",
           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
       ];
 
-      const formattedDay = date.getDate();
-      const formattedMonth = months[date.getMonth()];
-      const formattedYear = date.getFullYear();
+      const formattedDay = dateObj.getDate();
+      const formattedMonth = months[dateObj.getMonth()];
+      const formattedYear = dateObj.getFullYear();
 
-      let displayHours = date.getHours();
-      const displayMinutes = String(date.getMinutes()).padStart(2, "0");
-      const displaySeconds = String(date.getSeconds()).padStart(2, "0");
+      let displayHours = dateObj.getHours();
+      const displayMinutes = String(dateObj.getMinutes()).padStart(2, "0");
+      const displaySeconds = String(dateObj.getSeconds()).padStart(2, "0");
 
       const ampm = displayHours >= 12 ? "pm" : "am";
 
@@ -373,8 +355,7 @@ export const useFandangoData = () => {
     const unsubCurrent = onValue(currentRef, (snapshot) => {
       currentData = snapshot.val() || { data: [] };
       if (currentData.last_updated) {
-          const dt = new Date(currentData.last_updated);
-          lastUpdated = dt.toLocaleString();
+          lastUpdated = new Date(currentData.last_updated);
       }
       process();
     }, (error) => {
