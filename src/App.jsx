@@ -161,7 +161,7 @@ function App() {
         
         {/* HEADER */}
         <div className="header">
-          <h1>Advance Sales Dashboard</h1>
+          <h1>Peddi US Advance Sales Dashboard</h1>
           {metadata && (
             <div className="header-meta">
               Show Date: <strong>{metadata.showDate}</strong>
@@ -230,7 +230,7 @@ function App() {
 
 
         <div className="footer">
-          Fandango data dashboard • Elegant visual report with growth insights
+          @TheWkndCinema • Data from Fandango
         </div>
 
       </div>
