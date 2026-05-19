@@ -2,12 +2,13 @@ import { useFandangoData } from './hooks/useFandangoData';
 import { KPIGrid } from './components/KPIGrid';
 import { DataTable } from './components/DataTable';
 import { ShowsTable } from './components/ShowsTable';
+import { HistoryTable } from './components/HistoryTable';
 import { FilterPanel } from './components/FilterPanel';
 import './App.css';
 import { useMemo, useState } from 'react';
 
 function App() {
-  const { loading, kpis, tables, metadata, error, rawRows } = useFandangoData();
+  const { loading, kpis, tables, metadata, error, rawRows, historyData } = useFandangoData();
 
   const [showFilters, setShowFilters] = useState(true);
   const [filters, setFilters] = useState({
@@ -253,6 +254,12 @@ function App() {
           <ShowsTable rows={filteredRows} />
         </div>
 
+        {/* HISTORY TABLE */}
+        {historyData && historyData.length > 0 && (
+          <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
+            <HistoryTable data={historyData} />
+          </div>
+        )}
 
         <div className="footer">
           @TheWkndCinema • US Pre-sales • Data from Fandango

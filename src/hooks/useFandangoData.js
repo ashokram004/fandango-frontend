@@ -11,6 +11,7 @@ export const useFandangoData = () => {
     kpis: null,
     tables: null,
     rawRows: [],
+    historyData: [],
     filteredKpis: null,
     metadata: null,
     error: null
@@ -19,9 +20,11 @@ export const useFandangoData = () => {
   useEffect(() => {
     const currentRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/master_shows_data`);
     const snapshotRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/last_snapshot`);
+    const historyRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/history`);
 
     let currentData = null;
     let snapshotData = null;
+    let historyDataRaw = null;
     let lastUpdated = 'N/A';
     let growthSince = 'N/A';
 
@@ -342,6 +345,7 @@ export const useFandangoData = () => {
         kpis,
         tables,
         rawRows,
+        historyData: historyDataRaw || [],
         filteredKpis: initialFilteredKpis,
         metadata: {
           lastUpdated: formatDate(lastUpdated),
@@ -373,9 +377,20 @@ export const useFandangoData = () => {
       process();
     });
 
+    const unsubHistory = onValue(historyRef, (snapshot) => {
+      const hData = snapshot.val();
+      if (hData) {
+        historyDataRaw = Object.values(hData).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      } else {
+        historyDataRaw = [];
+      }
+      process();
+    });
+
     return () => {
       unsubCurrent();
       unsubSnapshot();
+      unsubHistory();
     };
   }, []);
 
