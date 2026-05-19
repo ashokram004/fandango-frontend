@@ -179,16 +179,31 @@ function App() {
 
         {/* FILTER TOGGLE */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '10px' }}>
-          <a
-            href="https://raw.githubusercontent.com/ashokram004/fandango_web/main/fandango_report.png"
-            target="_blank"
-            rel="noreferrer"
-            download="fandango_report.png"
+          <button
+            type="button"
             className="toggle-filter-btn"
-            style={{ background: '#c57e22', color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ background: '#c57e22', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            onClick={async () => {
+              const url = 'https://raw.githubusercontent.com/ashokram004/fandango_web/master/latest_report.png';
+              try {
+                const res = await fetch(url, { mode: 'cors' });
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = 'latest_report.png';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(blobUrl);
+              } catch (e) {
+                // Fallback: open the image in a new tab
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }
+            }}
           >
             Export Image
-          </a>
+          </button>
           <button
             onClick={() => setShowFilters((v) => !v)}
             className="toggle-filter-btn"
