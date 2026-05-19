@@ -170,7 +170,7 @@ function App() {
               {metadata?.growthSince && (
                 <span style={{ color: '#a0aec0', fontSize: '0.9em' }}>
                   <br />
-                  Growth since: <strong>{metadata.growthSince} IST</strong>
+                  Growth since: <strong style={{ color: '#a0aec0' }}>{metadata.growthSince} IST</strong>
                 </span>
               )}
             </div>
