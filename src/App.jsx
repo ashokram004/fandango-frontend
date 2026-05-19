@@ -178,7 +178,17 @@ function App() {
         </div>
 
         {/* FILTER TOGGLE */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '10px' }}>
+          <a
+            href="https://raw.githubusercontent.com/ashokram004/fandango_web/main/fandango_report.png"
+            target="_blank"
+            rel="noreferrer"
+            download="fandango_report.png"
+            className="toggle-filter-btn"
+            style={{ background: '#c57e22', color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            Export Image
+          </a>
           <button
             onClick={() => setShowFilters((v) => !v)}
             className="toggle-filter-btn"
