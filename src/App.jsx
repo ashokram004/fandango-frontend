@@ -166,7 +166,7 @@ function App() {
             <div className="header-meta">
               Show Date: <strong>{metadata.showDate}</strong>
               <br />
-              Last tracked: <strong>{metadata.lastUpdated} IST</strong>
+              Last update: <strong>{metadata.lastUpdated} IST</strong>
               {metadata?.growthSince && (
                 <>
                   <br />

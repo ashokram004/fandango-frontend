@@ -64,7 +64,7 @@ export const useFandangoData = () => {
       const displayMinutes = String(dateObj.getMinutes()).padStart(2, "0");
       const displaySeconds = String(dateObj.getSeconds()).padStart(2, "0");
 
-      const ampm = displayHours >= 12 ? "pm" : "am";
+      const ampm = displayHours >= 12 ? "PM" : "AM";
 
       displayHours = displayHours % 12 || 12;
 
