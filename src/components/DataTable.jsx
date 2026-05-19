@@ -71,8 +71,25 @@ export const DataTable = ({ title, data, isFormat, isLanguage, isState, isTheate
             );
           })}
           
-          {data.length > rowLimit && (
+          {!visibleRows.length && (
             <tr>
+              <td
+                colSpan={6}
+                style={{
+                  textAlign: 'center',
+                  padding: '18px',
+                  color: 'var(--text-muted)'
+                }}
+              >
+                No data available.
+              </td>
+            </tr>
+          )}
+
+          {data.length > rowLimit && (
+
+            <tr>
+
               <td colSpan={6} style={{ textAlign: 'center', padding: '18px', borderBottom: 'none' }}>
                 <button
                   onClick={() => setShowAll((prev) => !prev)}

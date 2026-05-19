@@ -19,6 +19,7 @@ function App() {
     timeCat: 'ALL'
   });
 
+
   const allRows = useMemo(() => rawRows || [], [rawRows]);
 
   const filteredRows = useMemo(() => {
@@ -35,12 +36,20 @@ function App() {
 
   const filteredSummary = useMemo(() => {
     const rows = filteredRows.filter((r) => !r.is_extra);
+
     const summary = {
       formats: {},
       languages: {},
       states: {},
-      theaters: {}
+      theaters: {},
+      chains: {},
+      timeCats: {}
     };
+
+    // same enrichment strategy as other summary tables:
+    // create derived “chain” + “timeCat” aggregates from the enriched raw rows.
+    // (rawRows already contains `chain` and `timeCat` from `useFandangoData`.)
+
 
     let totalGross = 0;
     let totalTickets = 0;
@@ -101,9 +110,16 @@ function App() {
       addItem(summary.languages, r.language || 'Unknown', r.language || 'Unknown');
       addItem(summary.states, r.state || 'Unknown', r.state || 'Unknown');
       addItem(summary.theaters, r.t_id || r.theater || 'Unknown', r.theater || 'Unknown');
+
+      // theatre chain distribution (derived)
+      addItem(summary.chains, r.chain || 'Unknown', r.chain || 'Unknown');
+
+      // time of day distribution (derived)
+      addItem(summary.timeCats, r.timeCat || 'Unknown', r.timeCat || 'Unknown');
     });
 
     const buildList = (dict) => Object.values(dict).sort((a, b) => b.gross - a.gross);
+
 
     return {
       kpis: {
@@ -118,9 +134,12 @@ function App() {
         formats: buildList(summary.formats),
         languages: buildList(summary.languages),
         states: buildList(summary.states),
-        theaters: buildList(summary.theaters)
+        theaters: buildList(summary.theaters),
+        chains: buildList(summary.chains),
+        timeCats: buildList(summary.timeCats)
       }
     };
+
   }, [filteredRows]);
 
   const noFiltersSelected = Object.values(filters).every((value) => value === 'ALL');
@@ -138,6 +157,7 @@ function App() {
   return (
     <div id="app">
       <div className="container">
+
         
         {/* HEADER */}
         <div className="header">
@@ -182,6 +202,7 @@ function App() {
 
         {/* DASHBOARD ROWS */}
         <div className="dashboard-row">
+
           {displayedTables?.formats && <DataTable title="Format Distribution" data={displayedTables.formats} isFormat />}
           {displayedTables?.languages && <DataTable title="Language Distribution" data={displayedTables.languages} isLanguage />}
         </div>
@@ -191,10 +212,22 @@ function App() {
           {displayedTables?.theaters && <DataTable title="Top Theatres" data={displayedTables.theaters} isTheater />}
         </div>
 
+        <div className="dashboard-row">
+          <DataTable
+            title="Theatre Chain Distribution"
+            data={displayedTables?.chains || []}
+          />
+          <DataTable
+            title="Time Of Day Analysis"
+            data={displayedTables?.timeCats || []}
+          />
+        </div>
+
         {/* SHOWS TABLE - using a full-width dashboard row */}
         <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
           <ShowsTable rows={filteredRows} />
         </div>
+
 
         <div className="footer">
           Fandango data dashboard • Elegant visual report with growth insights

@@ -42,7 +42,7 @@ export const useFandangoData = () => {
           second: '2-digit',
           hour12: true
         });
-        return new Date(ms).toLocaleString();
+
       } catch {
         return 'N/A';
       }
@@ -91,6 +91,8 @@ export const useFandangoData = () => {
 
     const process = () => {
       if (!currentData || !snapshotData) return;
+
+
 
       const toArray = (value) => {
         if (Array.isArray(value)) return value;
@@ -166,7 +168,9 @@ export const useFandangoData = () => {
           formats: {},
           languages: {},
           states: {},
-          theaters: {}
+          theaters: {},
+          chains: {},
+          timeCats: {}
         };
 
         dataset.forEach(row => {
@@ -189,6 +193,9 @@ export const useFandangoData = () => {
             const lang = row.language || 'Unknown';
             const state = row.state || 'Unknown';
             const theater = row.theater || 'Unknown';
+            
+            const chain = getChainCategory(theater);
+            const timeCat = getTimeCategory(row.time || 'Unknown');
 
             if (!summary.formats[format]) summary.formats[format] = { name: format, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
             summary.formats[format].shows += 1;
@@ -213,6 +220,18 @@ export const useFandangoData = () => {
             summary.theaters[row.t_id].tickets += tickets;
             summary.theaters[row.t_id].booked += booked;
             summary.theaters[row.t_id].gross += gross;
+
+            if (!summary.chains[chain]) summary.chains[chain] = { name: chain, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
+            summary.chains[chain].shows += 1;
+            summary.chains[chain].tickets += tickets;
+            summary.chains[chain].booked += booked;
+            summary.chains[chain].gross += gross;
+
+            if (!summary.timeCats[timeCat]) summary.timeCats[timeCat] = { name: timeCat, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
+            summary.timeCats[timeCat].shows += 1;
+            summary.timeCats[timeCat].tickets += tickets;
+            summary.timeCats[timeCat].booked += booked;
+            summary.timeCats[timeCat].gross += gross;
           }
         });
 
@@ -232,6 +251,7 @@ export const useFandangoData = () => {
       const snap = aggregate(rawSnapshot);
 
       const getSnapshotItem = (item, snapDict, isTheater) => {
+        if (!snapDict) return null;
         if (isTheater) {
           return Object.values(snapDict).find((x) => x.id === item.id) || null;
         }
@@ -311,7 +331,9 @@ export const useFandangoData = () => {
         formats: buildTable(curr.summary.formats, snap.summary.formats),
         languages: buildTable(curr.summary.languages, snap.summary.languages),
         states: buildTable(curr.summary.states, snap.summary.states),
-        theaters: buildTable(curr.summary.theaters, snap.summary.theaters, true)
+        theaters: buildTable(curr.summary.theaters, snap.summary.theaters, true),
+        chains: buildTable(curr.summary.chains, snap.summary.chains),
+        timeCats: buildTable(curr.summary.timeCats, snap.summary.timeCats)
       };
 
       const filteredRowsBase = rawRows.filter((r) => !r.is_extra);
