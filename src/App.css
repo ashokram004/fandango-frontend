@@ -134,9 +134,9 @@ body {
   border-top: 1px solid var(--glass-highlight);
   border-left: 1px solid var(--glass-highlight);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
-  overflow-x: auto;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .summary-section h2 {
@@ -408,7 +408,6 @@ tr:hover td {
 
 .growth-since {
   color: #a0aec0;
-  font-size: 0.9em;
 }
 
 .growth-since strong {
@@ -424,35 +423,70 @@ tr:hover td {
 /* RESPONSIVE DESIGN FOR MOBILE */
 @media (max-width: 768px) {
   .top-layout {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    column-gap: 15px;
+    row-gap: 15px;
     align-items: center;
-    gap: 15px;
   }
   
-  .top-image {
-    width: 100%;
-    max-width: 300px; /* limits the image size on mobile but keeps it big */
+  .top-content {
+    display: flex;
+    flex-direction: column;
+    grid-column: 2;
+    grid-row: 1;
   }
-  
+
   .header {
     flex-direction: column;
-    align-items: center;
-    text-align: center;
-    padding-bottom: 10px;
+    align-items: flex-start;
+    padding-bottom: 0;
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+
+  .top-image {
+    width: 100%;
+    max-width: 100px;
+    grid-column: 1;
+    grid-row: 1;
+    border-radius: 8px;
+    align-self: center;
+  }
+  
+  .header-title-container {
+    text-align: left;
+    align-self: flex-start;
   }
   
   .header-meta {
-    text-align: center;
-    margin-top: 10px;
+    text-align: left;
+    margin-top: 8px;
+    padding-bottom: 0;
+    border-bottom: none;
   }
 
   .header h1 {
-    font-size: 20px;
+    font-size: 18px;
+  }
+
+  .show-date {
+    font-size: 13px;
+    margin-top: 4px;
   }
   
   .action-buttons {
+    grid-column: 1 / -1;
+    grid-row: 2;
     justify-content: center;
     flex-wrap: wrap;
+    padding-top: 15px;
+    border-top: 1px solid var(--glass-border);
+  }
+
+  .toggle-filter-btn {
+    padding: 10px 14px;
+    font-size: 12px;
   }
 
   /* Force KPI grid to have 2 cards per row on mobile instead of 1 */

@@ -208,6 +208,7 @@ function App() {
                 a.remove();
                 URL.revokeObjectURL(blobUrl);
               } catch (e) {
+                console.error("Error downloading image:", e);
                 // Fallback: open the image in a new tab
                 window.open(url, '_blank', 'noopener,noreferrer');
               }

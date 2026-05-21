@@ -81,7 +81,7 @@ export const ShowsTable = ({ rows }) => {
               {th('price_str', 'Price', 'right')}
               {th('booked', 'Tickets', 'right')}
               {th('gross', 'Gross', 'right')}
-              {th('occ', 'Occ %', 'right')}
+              {th('occ', 'Occ', 'right')}
             </tr>
           </thead>
           <tbody>
