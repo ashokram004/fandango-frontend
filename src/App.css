@@ -34,17 +34,19 @@ body {
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 25px;
-  padding-bottom: 15px;
+  align-items: stretch;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--glass-border);
+  flex: 1;
 }
 
 .header h1 {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 600;
   color: var(--text-main);
   letter-spacing: -0.5px;
+  margin: 0;
 }
 
 .header-meta {
@@ -52,6 +54,7 @@ body {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.6;
+  align-self: flex-start;
 }
 
 .header-meta strong {
@@ -360,4 +363,125 @@ tr:hover td {
 .toggle-filter-btn:hover {
   transform: translateY(-1px);
   opacity: 0.95;
+}
+
+/* TOP LAYOUT STYLES */
+.top-layout {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.top-image {
+  width: 120px;
+  height: auto;
+  border-radius: 12px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.top-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title-container {
+  align-self: flex-end;
+}
+
+.header-title-container h1 {
+  margin: 0;
+}
+
+.show-date {
+  margin-top: 5px;
+  color: #94a3b8;
+  font-size: 15px;
+}
+
+.show-date strong {
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.growth-since {
+  color: #a0aec0;
+  font-size: 0.9em;
+}
+
+.growth-since strong {
+  color: #a0aec0;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* RESPONSIVE DESIGN FOR MOBILE */
+@media (max-width: 768px) {
+  .top-layout {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+  }
+  
+  .top-image {
+    width: 100%;
+    max-width: 300px; /* limits the image size on mobile but keeps it big */
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding-bottom: 10px;
+  }
+  
+  .header-meta {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+  }
+  
+  .action-buttons {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* Force KPI grid to have 2 cards per row on mobile instead of 1 */
+  .kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .kpi-card {
+    padding: 15px;
+  }
+
+  .kpi-value {
+    font-size: 20px;
+  }
+
+  .kpi-title {
+    font-size: 10px;
+  }
+  
+  /* Make dashboard rows single column */
+  .dashboard-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 400px) {
+  /* For very small screens, maybe text needs to be even smaller */
+  .kpi-value {
+    font-size: 16px;
+  }
 }

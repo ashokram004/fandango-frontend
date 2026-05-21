@@ -161,27 +161,27 @@ function App() {
 
         
         {/* TOP LAYOUT: IMAGE + HEADER + BUTTONS */}
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'stretch' }}>
-          <img src="/peddi.jpg" alt="Peddi" style={{ width: '150px', height: 'auto', borderRadius: '12px', objectFit: 'contain', flexShrink: 0 }} />
+        <div className="top-layout">
+          <img src="/peddi.jpg" alt="Peddi" className="top-image" />
           
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div className="top-content">
             {/* HEADER */}
-            <div className="header" style={{ marginBottom: '15px', flex: 1, alignItems: 'flex-end' }}>
-              <div style={{ marginTop: 'auto' }}>
-                <h1 style={{ margin: 0 }}>Peddi US Advance Sales Dashboard</h1>
+            <div className="header">
+              <div className="header-title-container">
+                <h1>Peddi US Advance Sales Dashboard</h1>
                 {metadata && (
-                  <div style={{ marginTop: '5px', color: '#94a3b8', fontSize: '15px' }}>
-                    Show Date: <strong style={{ color: '#f8fafc', fontWeight: 500 }}>{metadata.showDate}</strong>
+                  <div className="show-date">
+                    Show Date: <strong>{metadata.showDate}</strong>
                   </div>
                 )}
               </div>
               {metadata && (
-                <div className="header-meta" style={{ marginTop: 'auto' }}>
+                <div className="header-meta">
                   Last update: <strong>{metadata.lastUpdated} IST</strong>
                   {metadata?.growthSince && (
-                    <span style={{ color: '#a0aec0', fontSize: '0.9em' }}>
+                    <span className="growth-since">
                       <br />
-                      Growth since: <strong style={{ color: '#a0aec0' }}>{metadata.growthSince} IST</strong>
+                      Growth since: <strong>{metadata.growthSince} IST</strong>
                     </span>
                   )}
                 </div>
@@ -189,7 +189,7 @@ function App() {
             </div>
 
             {/* FILTER TOGGLE */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className="action-buttons">
           <button
             type="button"
             className="toggle-filter-btn"
