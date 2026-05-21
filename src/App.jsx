@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 function App() {
   const { loading, kpis, tables, metadata, error, rawRows, historyData } = useFandangoData();
 
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     state: 'ALL',
     chain: 'ALL',
@@ -160,26 +160,36 @@ function App() {
       <div className="container">
 
         
-        {/* HEADER */}
-        <div className="header">
-          <h1>Peddi US Advance Sales Dashboard</h1>
-          {metadata && (
-            <div className="header-meta">
-              Show Date: <strong>{metadata.showDate}</strong>
-              <br />
-              Last update: <strong>{metadata.lastUpdated} IST</strong>
-              {metadata?.growthSince && (
-                <span style={{ color: '#a0aec0', fontSize: '0.9em' }}>
-                  <br />
-                  Growth since: <strong style={{ color: '#a0aec0' }}>{metadata.growthSince} IST</strong>
-                </span>
+        {/* TOP LAYOUT: IMAGE + HEADER + BUTTONS */}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '20px', alignItems: 'stretch' }}>
+          <img src="/peddi.jpg" alt="Peddi" style={{ width: '150px', height: 'auto', borderRadius: '12px', objectFit: 'contain', flexShrink: 0 }} />
+          
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* HEADER */}
+            <div className="header" style={{ marginBottom: '15px', flex: 1, alignItems: 'flex-end' }}>
+              <div style={{ marginTop: 'auto' }}>
+                <h1 style={{ margin: 0 }}>Peddi US Advance Sales Dashboard</h1>
+                {metadata && (
+                  <div style={{ marginTop: '5px', color: '#94a3b8', fontSize: '15px' }}>
+                    Show Date: <strong style={{ color: '#f8fafc', fontWeight: 500 }}>{metadata.showDate}</strong>
+                  </div>
+                )}
+              </div>
+              {metadata && (
+                <div className="header-meta" style={{ marginTop: 'auto' }}>
+                  Last update: <strong>{metadata.lastUpdated} IST</strong>
+                  {metadata?.growthSince && (
+                    <span style={{ color: '#a0aec0', fontSize: '0.9em' }}>
+                      <br />
+                      Growth since: <strong style={{ color: '#a0aec0' }}>{metadata.growthSince} IST</strong>
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
 
-        {/* FILTER TOGGLE */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px', gap: '10px' }}>
+            {/* FILTER TOGGLE */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
           <button
             type="button"
             className="toggle-filter-btn"
@@ -211,6 +221,8 @@ function App() {
           >
             {showFilters ? 'Hide Filters' : 'Show Filters'}
           </button>
+        </div>
+          </div>
         </div>
 
         {/* FILTER PANEL */}
