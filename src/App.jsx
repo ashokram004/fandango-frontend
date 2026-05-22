@@ -162,7 +162,7 @@ function App() {
         
         {/* TOP LAYOUT: IMAGE + HEADER + BUTTONS */}
         <div className="top-layout">
-          <img src="/chiru.jpg" alt="Luck" className="top-image" />
+          <img src="/money.jpg" alt="Luck" className="top-image" />
           
           <div className="top-content">
             {/* HEADER */}
