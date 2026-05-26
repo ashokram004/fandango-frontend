@@ -271,8 +271,8 @@ function App() {
               <DifferenceTable title="Shows Cancelled/Removed" data={differences.removedShows} type="removed" />
             </div>
             <div className="dashboard-row">
-              <DifferenceTable title="Show-wise Tickets Booked" data={differences.ticketsBooked} type="booked" />
-              <DifferenceTable title="Show-wise Tickets Cancelled" data={differences.ticketsCancelled} type="cancelled" />
+              <DifferenceTable title="Existing Shows Tickets Growth" data={differences.ticketsBooked} type="booked" />
+              <DifferenceTable title="Existing Shows Cancelled Tickets" data={differences.ticketsCancelled} type="cancelled" />
             </div>
           </div>
         )}

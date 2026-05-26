@@ -83,7 +83,7 @@ export const DifferenceTable = ({ title, data, type }) => {
                     color: 'var(--text-muted)'
                   }}
                 >
-                  No differences found.
+                  No records found.
                 </td>
               </tr>
             )}

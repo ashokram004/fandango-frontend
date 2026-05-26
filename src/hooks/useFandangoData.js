@@ -229,24 +229,13 @@ export const useFandangoData = (diffMode = 'daily') => {
       } else {
         const snapBooked = normalizeNumber(sRow.booked !== undefined ? sRow.booked : sRow['Booked']);
         const snapGross = normalizeNumber(sRow.gross !== undefined ? sRow.gross : (sRow['Gross ($)'] !== undefined ? sRow['Gross ($)'] : sRow['Gross']));
-        
         const diffBooked = currBooked - snapBooked;
         const diffGross = currGross - snapGross;
         
         if (diffBooked > 0) {
-          differences.ticketsBooked.push({ 
-            ...r, 
-            theater: theaterName, 
-            diffBooked, 
-            diffGross 
-          });
+          differences.ticketsBooked.push({ ...r, theater: theaterName, diffBooked, diffGross });
         } else if (diffBooked < 0) {
-          differences.ticketsCancelled.push({ 
-            ...r, 
-            theater: theaterName, 
-            diffBooked: Math.abs(diffBooked), 
-            diffGross: Math.abs(diffGross) 
-          });
+          differences.ticketsCancelled.push({ ...r, theater: theaterName, diffBooked: Math.abs(diffBooked), diffGross: Math.abs(diffGross) });
         }
       }
     });
@@ -269,10 +258,13 @@ export const useFandangoData = (diffMode = 'daily') => {
       let totalTickets = 0;
       let totalBooked = 0;
       
+      let validGross = 0;
+      let validTickets = 0;
+      let validBooked = 0;
+
       let validShows = 0;
       let validVenues = new Set();
       let validCapacity = 0;
-      let validBooked = 0;
 
       const summary = {
         formats: {},
@@ -294,12 +286,15 @@ export const useFandangoData = (diffMode = 'daily') => {
         totalBooked += booked;
 
         if (!isExtra) {
+          validGross += gross;
+          validTickets += tickets;
+          validBooked += booked;
+
           validShows += 1;
           const theaterName = row.theater || row['Theater Name'] || row['Theater'] || 'Unknown';
           const tId = row.t_id || theaterName;
           validVenues.add(tId);
           validCapacity += tickets;
-          validBooked += booked;
 
           const rawFormat = row.format || row['Format'] || '';
           const format = rawFormat.includes('D-Box') && rawFormat.includes('Premium') ? 'Premium' : (rawFormat || 'Unknown');
@@ -327,9 +322,12 @@ export const useFandangoData = (diffMode = 'daily') => {
       });
 
       return {
-        totalGross,
-        totalTickets,
+        totalGross, 
+        totalTickets, 
         totalBooked,
+        validGross, 
+        validTickets, 
+        validBooked,
         totalShows: validShows,
         totalVenues: validVenues.size,
         occupancy: validCapacity > 0 ? (validBooked / validCapacity) * 100 : 0,
@@ -353,9 +351,9 @@ export const useFandangoData = (diffMode = 'daily') => {
     };
 
     const kpis = {
-      totalGross: { val: curr.totalGross, delta: curr.totalGross - snap.totalGross },
-      totalTickets: { val: curr.totalTickets, delta: curr.totalTickets - snap.totalTickets },
-      totalBooked: { val: curr.totalBooked, delta: curr.totalBooked - snap.totalBooked },
+      totalGross: { val: curr.totalGross, delta: curr.validGross - snap.validGross },
+      totalTickets: { val: curr.totalTickets, delta: curr.validTickets - snap.validTickets },
+      totalBooked: { val: curr.totalBooked, delta: curr.validBooked - snap.validBooked },
       totalVenues: { val: curr.totalVenues, delta: curr.totalVenues - snap.totalVenues },
       totalShows: { val: curr.totalShows, delta: curr.totalShows - snap.totalShows },
       occupancy: { val: curr.occupancy, capacity: curr.totalCapacity }
@@ -388,7 +386,8 @@ export const useFandangoData = (diffMode = 'daily') => {
 
       return {
         t_id: row.t_id || '',
-        id: `${row.t_id || ''}_${row.time || ''}_${format || ''}_${language || ''}_${theater || ''}`,
+        // FIX: Appended array index '_idx' to guarantee a 100% unique React key even for DB duplicates
+        id: `${row.t_id || ''}_${row.time || ''}_${format || ''}_${language || ''}_${theater || ''}_${idx}`,
         state,
         theater,
         format,
@@ -411,14 +410,40 @@ export const useFandangoData = (diffMode = 'daily') => {
     });
 
     const buildTable = (currDict, snapDict, isTheater = false) => {
-      return Object.values(currDict).map((item) => {
+      const result = Object.values(currDict).map((item) => {
         const sItem = getSnapshotItem(item, snapDict, isTheater);
-        const d_gross = normalizeNumber(item.gross) - normalizeNumber(sItem?.gross);
-        const d_booked = normalizeNumber(item.booked) - normalizeNumber(sItem?.booked);
-        const d_tickets = normalizeNumber(item.tickets) - normalizeNumber(sItem?.tickets);
+        const s_gross = normalizeNumber(sItem?.gross);
+        const s_booked = normalizeNumber(sItem?.booked);
+        const s_tickets = normalizeNumber(sItem?.tickets);
+
+        const d_gross = normalizeNumber(item.gross) - s_gross;
+        const d_booked = normalizeNumber(item.booked) - s_booked;
+        const d_tickets = normalizeNumber(item.tickets) - s_tickets;
         const occ = normalizeNumber(item.tickets) > 0 ? (normalizeNumber(item.booked) / normalizeNumber(item.tickets)) * 100 : 0;
         return { ...item, d_gross, d_booked, d_tickets, occ };
-      }).sort((a, b) => b.gross - a.gross);
+      });
+
+      if (snapDict) {
+        Object.values(snapDict).forEach(sItem => {
+          const exists = result.find(r => r.id === sItem.id || r.name === sItem.name);
+          if (!exists) {
+            result.push({
+              id: sItem.id,
+              name: sItem.name,
+              shows: 0,
+              tickets: 0,
+              booked: 0,
+              gross: 0,
+              d_gross: -normalizeNumber(sItem.gross),
+              d_booked: -normalizeNumber(sItem.booked),
+              d_tickets: -normalizeNumber(sItem.tickets),
+              occ: 0
+            });
+          }
+        });
+      }
+
+      return result.sort((a, b) => b.gross - a.gross);
     };
 
     const tables = {
