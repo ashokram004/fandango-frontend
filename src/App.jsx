@@ -4,11 +4,13 @@ import { DataTable } from './components/DataTable';
 import { ShowsTable } from './components/ShowsTable';
 import { HistoryTable } from './components/HistoryTable';
 import { FilterPanel } from './components/FilterPanel';
+import { DifferenceTable } from './components/DifferenceTable';
 import './App.css';
 import { useMemo, useState } from 'react';
 
 function App() {
-  const { loading, kpis, tables, metadata, error, rawRows, historyData } = useFandangoData();
+  const [diffMode, setDiffMode] = useState('daily');
+  const { loading, kpis, tables, metadata, error, rawRows, historyData, differences } = useFandangoData(diffMode);
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -46,11 +48,6 @@ function App() {
       chains: {},
       timeCats: {}
     };
-
-    // same enrichment strategy as other summary tables:
-    // create derived “chain” + “timeCat” aggregates from the enriched raw rows.
-    // (rawRows already contains `chain` and `timeCat` from `useFandangoData`.)
-
 
     let totalGross = 0;
     let totalTickets = 0;
@@ -190,39 +187,46 @@ function App() {
 
             {/* FILTER TOGGLE */}
             <div className="action-buttons">
-          <button
-            type="button"
-            className="toggle-filter-btn"
-            style={{ background: '#c57e22', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onClick={async () => {
-              const url = 'https://raw.githubusercontent.com/ashokram004/fandango_web/master/latest_report.png';
-              try {
-                const res = await fetch(url, { mode: 'cors' });
-                const blob = await res.blob();
-                const blobUrl = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = 'latest_report.png';
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                URL.revokeObjectURL(blobUrl);
-              } catch (e) {
-                console.error("Error downloading image:", e);
-                // Fallback: open the image in a new tab
-                window.open(url, '_blank', 'noopener,noreferrer');
-              }
-            }}
-          >
-            Export Image
-          </button>
-          <button
-            onClick={() => setShowFilters((v) => !v)}
-            className="toggle-filter-btn"
-          >
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-          </button>
-        </div>
+              <button
+                onClick={() => setDiffMode(m => m === 'daily' ? 'hourly' : 'daily')}
+                className="toggle-filter-btn"
+                style={{ background: diffMode === 'hourly' ? '#8b5cf6' : '#334155' }}
+              >
+                {diffMode === 'daily' ? 'Viewing: Daily Growth (Click for Hourly)' : 'Viewing: Hourly Growth (Click for Daily)'}
+              </button>
+              <button
+                type="button"
+                className="toggle-filter-btn"
+                style={{ background: '#c57e22', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={async () => {
+                  const url = 'https://raw.githubusercontent.com/ashokram004/fandango_web/master/latest_report.png';
+                  try {
+                    const res = await fetch(url, { mode: 'cors' });
+                    const blob = await res.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = blobUrl;
+                    a.download = 'latest_report.png';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(blobUrl);
+                  } catch (e) {
+                    console.error("Error downloading image:", e);
+                    // Fallback: open the image in a new tab
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+              >
+                Export Image
+              </button>
+              <button
+                onClick={() => setShowFilters((v) => !v)}
+                className="toggle-filter-btn"
+              >
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -271,6 +275,23 @@ function App() {
         {historyData && historyData.length > 0 && (
           <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
             <HistoryTable data={historyData} />
+          </div>
+        )}
+
+        {/* DIFFERENCES SECTION */}
+        {differences && (
+          <div className="differences-container" style={{ marginTop: '40px' }}>
+            <h2 style={{ fontSize: '24px', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>
+              Difference Details ({diffMode === 'hourly' ? 'Hourly' : 'Daily'})
+            </h2>
+            <div className="dashboard-row">
+              <DifferenceTable title="New Shows Added" data={differences.addedShows} type="added" />
+              <DifferenceTable title="Shows Cancelled/Removed" data={differences.removedShows} type="removed" />
+            </div>
+            <div className="dashboard-row">
+              <DifferenceTable title="Show-wise Tickets Booked" data={differences.ticketsBooked} type="booked" />
+              <DifferenceTable title="Show-wise Tickets Cancelled" data={differences.ticketsCancelled} type="cancelled" />
+            </div>
           </div>
         )}
 
