@@ -1,10 +1,29 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ref, onValue } from 'firebase/database';
 import { database } from '../firebaseConfig';
-import * as XLSX from 'xlsx';
 
 const MOVIE_SLUG = 'peddi-2026';
 const SHOW_DATE = '2026-06-03';
+
+const formatUtcToIst = (value) => {
+  try {
+    if (value === null || value === undefined || value === '') return 'N/A';
+    const ms = typeof value === 'number' ? value : Date.parse(String(value));
+    if (!Number.isFinite(ms)) return 'N/A';
+    return new Date(ms).toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true
+    }).replace(/am|pm/i, match => match.toUpperCase());
+  } catch {
+    return 'N/A';
+  }
+};
 
 export const useFandangoData = (diffMode = 'daily') => {
   const [data, setData] = useState({
@@ -29,8 +48,6 @@ export const useFandangoData = (diffMode = 'daily') => {
     growthSinceHourly: 'N/A'
   });
 
-
-
   const process = useCallback(() => {
     const { currentData, dailySnapshot, hourlySnapshot, historyDataRaw, lastUpdated, growthSinceDaily, growthSinceHourly } = refs.current;
 
@@ -39,7 +56,7 @@ export const useFandangoData = (diffMode = 'daily') => {
 
     if (!currentData || !snapshotData) return;
 
-    const growthSince = currentDiffMode === 'hourly' ? growthSinceHourly : growthSinceDaily;
+    let growthSince = currentDiffMode === 'hourly' ? growthSinceHourly : growthSinceDaily;
 
     const toArray = (value) => {
       if (Array.isArray(value)) return value;
@@ -48,6 +65,10 @@ export const useFandangoData = (diffMode = 'daily') => {
     };
 
     const normalizeNumber = (value) => {
+      if (typeof value === 'string') {
+        const parsed = parseFloat(value.replace(/[^0-9.-]+/g, ""));
+        return Number.isFinite(parsed) ? parsed : 0;
+      }
       const normalized = Number(value);
       return Number.isFinite(normalized) ? normalized : 0;
     };
@@ -86,7 +107,6 @@ export const useFandangoData = (diffMode = 'daily') => {
           if (h >= 20 && h < 24) return '5. Night (8pm-12am)';
           return '6. Midnight (12am-5am)';
         }
-
         if (hours >= 5 && hours < 9) return '1. Early Morning (5am-9am)';
         if (hours >= 9 && hours < 12) return '2. Morning (9am-12pm)';
         if (hours >= 12 && hours < 16) return '3. Afternoon (12pm-4pm)';
@@ -103,24 +123,91 @@ export const useFandangoData = (diffMode = 'daily') => {
       return f?.includes('D-Box') && f?.includes('Premium') ? 'Premium' : f;
     };
 
-    const makeRowId = (r) => {
-      const theater = (r.theater || r['Theater Name'] || '').trim().toLowerCase();
-      const time = (r.time || r['Show Time'] || '').trim().toLowerCase();
-      const format = (normalizeFormat(r.format || r['Format']) || '').trim().toLowerCase();
-      const language = (r.language || r['Language'] || '').trim().toLowerCase();
-      return `${theater}_${time}_${format}_${language}`;
+    const parseTimeForSort = (timeStr) => {
+      if (!timeStr) return 0;
+      const clean = timeStr.toString().trim().toLowerCase().replace(/\s*o'clock\s*/gi, ':00 ');
+      const m = clean.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+      if (!m) return 0;
+      let h = parseInt(m[1], 10);
+      let min = parseInt(m[2] || '0', 10);
+      let ampm = m[3];
+      if (ampm === 'pm' && h !== 12) h += 12;
+      if (ampm === 'am' && h === 12) h = 0;
+      return h * 60 + min;
     };
 
-    const currentMap = new Map();
-    rawCurrent.forEach(r => {
-      if (r.is_extra || r.t_id === 'EXTRA') return;
-      currentMap.set(makeRowId(r), r);
-    });
+    const makeBaseId = (r) => {
+      const theater = (r.t_id || r.theater || r['Theater Name'] || r['Theater'] || '').trim().toLowerCase();
+      const format = (normalizeFormat(r.format || r['Format']) || '').trim().toLowerCase();
+      const language = (r.language || r['Language'] || '').trim().toLowerCase();
+      return `${theater}_${format}_${language}`;
+    };
+
+    const makeRowId = (r) => {
+      const time = (r.time || r['Show Time'] || r['Time'] || '').trim().toLowerCase();
+      return `${makeBaseId(r)}_${time}`;
+    };
 
     const snapMap = new Map();
-    rawSnapshot.forEach(r => {
+    rawSnapshot.forEach((r, i) => {
       if (r.is_extra || r.t_id === 'EXTRA') return;
-      snapMap.set(makeRowId(r), r);
+      r._matched = false;
+      const id = makeRowId(r);
+      if (!snapMap.has(id)) snapMap.set(id, []);
+      snapMap.get(id).push(r);
+    });
+
+    const currentMatchedSnap = new Map();
+    const unmatchedCurrent = [];
+
+    rawCurrent.forEach((r, i) => {
+      if (r.is_extra || r.t_id === 'EXTRA') return;
+      const id = makeRowId(r);
+      const potentialSnaps = snapMap.get(id);
+
+      if (potentialSnaps && potentialSnaps.length > 0) {
+        const sMatch = potentialSnaps.find(s => !s._matched);
+        if (sMatch) {
+          sMatch._matched = true;
+          currentMatchedSnap.set(i, sMatch);
+        } else {
+          unmatchedCurrent.push({ row: r, index: i });
+        }
+      } else {
+        unmatchedCurrent.push({ row: r, index: i });
+      }
+    });
+
+    const unmatchedSnapByBase = {};
+    rawSnapshot.forEach(s => {
+      if (s.is_extra || s.t_id === 'EXTRA' || s._matched) return;
+      const baseId = makeBaseId(s);
+      if (!unmatchedSnapByBase[baseId]) unmatchedSnapByBase[baseId] = [];
+      unmatchedSnapByBase[baseId].push(s);
+    });
+
+    unmatchedCurrent.forEach(({ row: c, index: i }) => {
+      const baseId = makeBaseId(c);
+      const cMins = parseTimeForSort(c.time || c['Show Time'] || c['Time']);
+      const availableSnaps = unmatchedSnapByBase[baseId] || [];
+
+      let bestMatch = null;
+      let minDiff = Infinity;
+
+      availableSnaps.forEach(s => {
+        if (s._matched) return;
+        const sMins = parseTimeForSort(s.time || s['Show Time'] || s['Time']);
+        const diff = Math.abs(cMins - sMins);
+        if (diff <= 60 && diff < minDiff) {
+          minDiff = diff;
+          bestMatch = s;
+        }
+      });
+
+      if (bestMatch) {
+        bestMatch._matched = true;
+        currentMatchedSnap.set(i, bestMatch);
+      }
     });
 
     const differences = {
@@ -130,37 +217,50 @@ export const useFandangoData = (diffMode = 'daily') => {
       ticketsCancelled: []
     };
 
-    currentMap.forEach((currRow, key) => {
-      const snapRow = snapMap.get(key);
-      const currBooked = normalizeNumber(currRow.booked);
-      const currGross = normalizeNumber(currRow.gross);
-      const theaterName = currRow.theater || currRow['Theater Name'];
+    rawCurrent.forEach((r, idx) => {
+      if (r.is_extra || r.t_id === 'EXTRA') return;
+      const sRow = currentMatchedSnap.get(idx);
+      const currBooked = normalizeNumber(r.booked);
+      const currGross = normalizeNumber(r.gross);
+      const theaterName = r.theater || r['Theater Name'] || r['Theater'];
 
-      if (!snapRow) {
-        differences.addedShows.push({ ...currRow, theater: theaterName });
+      if (!sRow) {
+        differences.addedShows.push({ ...r, theater: theaterName });
       } else {
-        const snapBooked = normalizeNumber(snapRow.booked !== undefined ? snapRow.booked : snapRow['Booked']);
-        const snapGross = normalizeNumber(snapRow.gross !== undefined ? snapRow.gross : snapRow['Gross ($)']);
+        const snapBooked = normalizeNumber(sRow.booked !== undefined ? sRow.booked : sRow['Booked']);
+        const snapGross = normalizeNumber(sRow.gross !== undefined ? sRow.gross : (sRow['Gross ($)'] !== undefined ? sRow['Gross ($)'] : sRow['Gross']));
+        
         const diffBooked = currBooked - snapBooked;
         const diffGross = currGross - snapGross;
         
         if (diffBooked > 0) {
-          differences.ticketsBooked.push({ ...currRow, theater: theaterName, diffBooked, diffGross });
+          differences.ticketsBooked.push({ 
+            ...r, 
+            theater: theaterName, 
+            diffBooked, 
+            diffGross 
+          });
         } else if (diffBooked < 0) {
-          differences.ticketsCancelled.push({ ...currRow, theater: theaterName, diffBooked: Math.abs(diffBooked), diffGross: Math.abs(diffGross) });
+          differences.ticketsCancelled.push({ 
+            ...r, 
+            theater: theaterName, 
+            diffBooked: Math.abs(diffBooked), 
+            diffGross: Math.abs(diffGross) 
+          });
         }
       }
     });
 
-    snapMap.forEach((snapRow, key) => {
-      if (!currentMap.has(key)) {
-        const theaterName = snapRow.theater || snapRow['Theater Name'];
-        differences.removedShows.push({ ...snapRow, theater: theaterName, time: snapRow.time || snapRow['Show Time'], format: snapRow.format || snapRow['Format'], language: snapRow.language || snapRow['Language'] });
+    rawSnapshot.forEach(r => {
+      if (r.is_extra || r.t_id === 'EXTRA') return;
+      if (!r._matched) {
+        const theaterName = r.theater || r['Theater Name'] || r['Theater'];
+        differences.removedShows.push({ ...r, theater: theaterName, time: r.time || r['Show Time'] || r['Time'], format: r.format || r['Format'], language: r.language || r['Language'] });
       }
     });
 
     differences.addedShows.sort((a, b) => normalizeNumber(b.gross) - normalizeNumber(a.gross));
-    differences.removedShows.sort((a, b) => normalizeNumber(b.gross || b['Gross ($)']) - normalizeNumber(a.gross || a['Gross ($)']));
+    differences.removedShows.sort((a, b) => normalizeNumber(b.gross || b['Gross ($)'] || b['Gross']) - normalizeNumber(a.gross || a['Gross ($)'] || a['Gross']));
     differences.ticketsBooked.sort((a, b) => b.diffBooked - a.diffBooked);
     differences.ticketsCancelled.sort((a, b) => b.diffBooked - a.diffBooked);
 
@@ -184,9 +284,9 @@ export const useFandangoData = (diffMode = 'daily') => {
       };
 
       dataset.forEach(row => {
-        const gross = normalizeNumber(row.gross !== undefined ? row.gross : row['Gross ($)']);
+        const gross = normalizeNumber(row.gross !== undefined ? row.gross : (row['Gross ($)'] !== undefined ? row['Gross ($)'] : row['Gross']));
         const booked = normalizeNumber(row.booked !== undefined ? row.booked : row['Booked']);
-        const tickets = normalizeNumber(row.total !== undefined ? row.total : row['Tickets']);
+        const tickets = normalizeNumber(row.total !== undefined ? row.total : (row['Tickets'] !== undefined ? row['Tickets'] : row['Capacity']));
         const isExtra = row.is_extra || row.t_id === 'EXTRA';
 
         totalGross += gross;
@@ -195,8 +295,8 @@ export const useFandangoData = (diffMode = 'daily') => {
 
         if (!isExtra) {
           validShows += 1;
-          const theaterName = row.theater || row['Theater Name'] || 'Unknown';
-          const tId = row.t_id || theaterName; // Fallback to name if t_id missing
+          const theaterName = row.theater || row['Theater Name'] || row['Theater'] || 'Unknown';
+          const tId = row.t_id || theaterName;
           validVenues.add(tId);
           validCapacity += tickets;
           validBooked += booked;
@@ -207,7 +307,7 @@ export const useFandangoData = (diffMode = 'daily') => {
           const state = row.state || row['State'] || 'Unknown';
           
           const chain = getChainCategory(theaterName);
-          const timeCat = getTimeCategory(row.time || row['Show Time'] || 'Unknown');
+          const timeCat = getTimeCategory(row.time || row['Show Time'] || row['Time'] || 'Unknown');
 
           const inc = (obj, key, nameFallback) => {
             if (!obj[key]) obj[key] = { id: key, name: nameFallback || key, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
@@ -261,7 +361,7 @@ export const useFandangoData = (diffMode = 'daily') => {
       occupancy: { val: curr.occupancy, capacity: curr.totalCapacity }
     };
 
-    const rawRows = rawCurrent.map((row) => {
+    const rawRows = rawCurrent.map((row, idx) => {
       const format = normalizeFormat(row.format);
       const state = row.state || 'Unknown';
       const theater = row.theater || 'Unknown';
@@ -280,10 +380,11 @@ export const useFandangoData = (diffMode = 'daily') => {
       const language = row.language || 'Unknown';
       const is_extra = !!(row.is_extra || row.t_id === 'EXTRA');
 
-      const sRow = snapMap.get(makeRowId(row));
-      const s_gross = sRow ? normalizeNumber(sRow.gross !== undefined ? sRow.gross : sRow['Gross ($)']) : 0;
+      const sRow = currentMatchedSnap.get(idx);
+      
+      const s_gross = sRow ? normalizeNumber(sRow.gross !== undefined ? sRow.gross : (sRow['Gross ($)'] !== undefined ? sRow['Gross ($)'] : sRow['Gross'])) : 0;
       const s_booked = sRow ? normalizeNumber(sRow.booked !== undefined ? sRow.booked : sRow['Booked']) : 0;
-      const s_total = sRow ? normalizeNumber(sRow.total !== undefined ? sRow.total : sRow['Tickets']) : 0;
+      const s_total = sRow ? normalizeNumber(sRow.total !== undefined ? sRow.total : (sRow['Tickets'] !== undefined ? sRow['Tickets'] : sRow['Capacity'])) : 0;
 
       return {
         t_id: row.t_id || '',
@@ -381,60 +482,9 @@ export const useFandangoData = (diffMode = 'daily') => {
   }, [diffMode]);
 
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/ashokram004/fandango_web/master/previous_report.xlsx')
-      .then(res => res.arrayBuffer())
-      .then(ab => {
-        const wb = XLSX.read(ab, { type: 'array' });
-        const ws = wb.Sheets['Showtime Details'];
-        if (ws) {
-          const sheetData = XLSX.utils.sheet_to_json(ws);
-          refs.current.hourlySnapshot = { data: sheetData };
-          
-          const kpiSheet = wb.Sheets['Summary KPIs'];
-          if (kpiSheet) {
-            const kpiData = XLSX.utils.sheet_to_json(kpiSheet);
-            if (kpiData.length > 0) {
-               const growthKey = Object.keys(kpiData[0]).find(k => k.includes('Growth'));
-               if (growthKey) {
-                  const m = growthKey.match(/Since (.*)\)/);
-                  if (m) refs.current.growthSinceHourly = m[1];
-               }
-            }
-          }
-          if (refs.current.growthSinceHourly === 'N/A') {
-             refs.current.growthSinceHourly = 'Previous Report';
-          }
-          if (diffMode === 'hourly') {
-            process();
-          }
-        }
-      })
-      .catch(err => console.error('Failed to fetch hourly snapshot:', err));
-  }, [process, diffMode]);
-
-  useEffect(() => {
-    const formatUtcToIst = (value) => {
-      try {
-        if (value === null || value === undefined || value === '') return 'N/A';
-        const ms = typeof value === 'number' ? value : Date.parse(String(value));
-        if (!Number.isFinite(ms)) return 'N/A';
-        return new Date(ms).toLocaleString('en-IN', {
-          timeZone: 'Asia/Kolkata',
-          year: 'numeric',
-          month: 'short',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: true
-        }).replace(/am|pm/i, match => match.toUpperCase());
-      } catch {
-        return 'N/A';
-      }
-    };
-
     const currentRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/master_shows_data`);
     const snapshotRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/last_snapshot`);
+    const hourlySnapshotRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/previous_run_snapshot`);
     const historyRef = ref(database, `movies/${MOVIE_SLUG}/${SHOW_DATE}/history`);
 
     const unsubCurrent = onValue(currentRef, (snapshot) => {
@@ -455,6 +505,14 @@ export const useFandangoData = (diffMode = 'daily') => {
       process();
     });
 
+    const unsubHourlySnapshot = onValue(hourlySnapshotRef, (snapshot) => {
+      refs.current.hourlySnapshot = snapshot.val() || { data: [] };
+      if (refs.current.hourlySnapshot?.timestamp) {
+        refs.current.growthSinceHourly = formatUtcToIst(refs.current.hourlySnapshot.timestamp);
+      }
+      process();
+    });
+
     const unsubHistory = onValue(historyRef, (snapshot) => {
       const hData = snapshot.val();
       if (hData) {
@@ -468,6 +526,7 @@ export const useFandangoData = (diffMode = 'daily') => {
     return () => {
       unsubCurrent();
       unsubSnapshot();
+      unsubHourlySnapshot();
       unsubHistory();
     };
   }, [process]);

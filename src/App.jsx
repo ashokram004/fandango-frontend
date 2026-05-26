@@ -4,7 +4,7 @@ import { DataTable } from './components/DataTable';
 import { ShowsTable } from './components/ShowsTable';
 import { HistoryTable } from './components/HistoryTable';
 import { FilterPanel } from './components/FilterPanel';
-import { DifferenceTable } from './components/DifferenceTable';
+import { DifferenceTable } from './components/DifferenceTable'; // <--- The updated component
 import './App.css';
 import { useMemo, useState } from 'react';
 
@@ -21,7 +21,6 @@ function App() {
     language: 'ALL',
     timeCat: 'ALL'
   });
-
 
   const allRows = useMemo(() => rawRows || [], [rawRows]);
 
@@ -108,16 +107,11 @@ function App() {
       addItem(summary.languages, r.language || 'Unknown', r.language || 'Unknown');
       addItem(summary.states, r.state || 'Unknown', r.state || 'Unknown');
       addItem(summary.theaters, r.t_id || r.theater || 'Unknown', r.theater || 'Unknown');
-
-      // theatre chain distribution (derived)
       addItem(summary.chains, r.chain || 'Unknown', r.chain || 'Unknown');
-
-      // time of day distribution (derived)
       addItem(summary.timeCats, r.timeCat || 'Unknown', r.timeCat || 'Unknown');
     });
 
     const buildList = (dict) => Object.values(dict).sort((a, b) => b.gross - a.gross);
-
 
     return {
       kpis: {
@@ -156,13 +150,10 @@ function App() {
     <div id="app">
       <div className="container">
 
-        
-        {/* TOP LAYOUT: IMAGE + HEADER + BUTTONS */}
         <div className="top-layout">
           <img src="/money.jpg" alt="Luck" className="top-image" />
           
           <div className="top-content">
-            {/* HEADER */}
             <div className="header">
               <div className="header-title-container">
                 <h1>Peddi US Advance Sales Dashboard</h1>
@@ -185,7 +176,6 @@ function App() {
               )}
             </div>
 
-            {/* FILTER TOGGLE */}
             <div className="action-buttons">
               <button
                 onClick={() => setDiffMode(m => m === 'daily' ? 'hourly' : 'daily')}
@@ -213,7 +203,6 @@ function App() {
                     URL.revokeObjectURL(blobUrl);
                   } catch (e) {
                     console.error("Error downloading image:", e);
-                    // Fallback: open the image in a new tab
                     window.open(url, '_blank', 'noopener,noreferrer');
                   }
                 }}
@@ -230,7 +219,6 @@ function App() {
           </div>
         </div>
 
-        {/* FILTER PANEL */}
         {allRows.length > 0 && (
           <FilterPanel
             rawRows={allRows}
@@ -240,12 +228,9 @@ function App() {
           />
         )}
 
-        {/* KPI GRID */}
         <KPIGrid kpis={displayedKpis} />
 
-        {/* DASHBOARD ROWS */}
         <div className="dashboard-row">
-
           {displayedTables?.formats && <DataTable title="Format Distribution" data={displayedTables.formats} isFormat />}
           {displayedTables?.languages && <DataTable title="Language Distribution" data={displayedTables.languages} isLanguage />}
         </div>
@@ -266,19 +251,16 @@ function App() {
           />
         </div>
 
-        {/* SHOWS TABLE - using a full-width dashboard row */}
         <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
           <ShowsTable rows={filteredRows} />
         </div>
 
-        {/* HISTORY TABLE */}
         {historyData && historyData.length > 0 && (
           <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
             <HistoryTable data={historyData} />
           </div>
         )}
 
-        {/* DIFFERENCES SECTION */}
         {differences && (
           <div className="differences-container" style={{ marginTop: '40px' }}>
             <h2 style={{ fontSize: '24px', marginBottom: '20px', borderBottom: '1px solid #334155', paddingBottom: '10px' }}>

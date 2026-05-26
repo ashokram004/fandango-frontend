@@ -34,35 +34,49 @@ export const DifferenceTable = ({ title, data, type }) => {
               {isShowChange && <th>Tickets/Booked</th>}
               {isShowChange && <th>Gross</th>}
               {isTicketChange && <th>{type === 'booked' ? 'Tickets Added' : 'Tickets Cancelled'}</th>}
+              {isTicketChange && <th>{type === 'booked' ? 'Gross Increase' : 'Gross Decrease'}</th>}
             </tr>
           </thead>
           <tbody>
             {visibleRows.map((row, i) => {
+              const changeColor = type === 'booked' ? '#4ade80' : '#f87171';
+              const changeSign = type === 'booked' ? '+' : '-';
+
               return (
                 <tr key={i}>
                   <td className="theater-col">{row.theater || row['Theater Name']}</td>
                   <td>{row.time || row['Show Time']}</td>
                   <td>{row.format || row['Format']}</td>
                   <td>{row.language || row['Language']}</td>
+                  
+                  {/* Columns for Added/Removed Shows */}
                   {isShowChange && (
                     <td>
                       {formatNumber(row.total || row['Tickets'])} / {formatNumber(row.booked !== undefined ? row.booked : row['Booked'])}
                     </td>
                   )}
                   {isShowChange && <td className="gross-val">{formatCurrency(row.gross !== undefined ? row.gross : row['Gross ($)'])}</td>}
+                  
+                  {/* Columns for Ticket Variations (Tickets & Gross Deltas) */}
                   {isTicketChange && (
-                    <td style={{ color: type === 'booked' ? '#4ade80' : '#f87171', fontWeight: 'bold' }}>
-                      {type === 'booked' ? '+' : '-'}{formatNumber(row.diffBooked)}
-                    </td>
+                    <>
+                      <td style={{ color: changeColor, fontWeight: 'bold' }}>
+                        {changeSign}{formatNumber(row.diffBooked)}
+                      </td>
+                      <td style={{ color: changeColor, fontWeight: 'bold' }}>
+                        {changeSign}{formatCurrency(row.diffGross)}
+                      </td>
+                    </>
                   )}
                 </tr>
               );
             })}
             
+            {/* Empty State Row */}
             {!visibleRows.length && (
               <tr>
                 <td
-                  colSpan={isTicketChange ? 5 : 6}
+                  colSpan={6}
                   style={{
                     textAlign: 'center',
                     padding: '18px',
@@ -74,9 +88,10 @@ export const DifferenceTable = ({ title, data, type }) => {
               </tr>
             )}
 
+            {/* Pagination/Toggle Row */}
             {data && data.length > rowLimit && (
               <tr>
-                <td colSpan={isTicketChange ? 5 : 6} style={{ textAlign: 'center', padding: '18px', borderBottom: 'none' }}>
+                <td colSpan={6} style={{ textAlign: 'center', padding: '18px', borderBottom: 'none' }}>
                   <button
                     onClick={() => setShowAll((prev) => !prev)}
                     className="btn-toggle"
