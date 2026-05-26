@@ -4,13 +4,15 @@ import { DataTable } from './components/DataTable';
 import { ShowsTable } from './components/ShowsTable';
 import { HistoryTable } from './components/HistoryTable';
 import { FilterPanel } from './components/FilterPanel';
-import { DifferenceTable } from './components/DifferenceTable'; // <--- The updated component
+import { DifferenceTable } from './components/DifferenceTable';
+import { generateImageReport } from './utils/imageGenerator'; // <--- NEW IMPORT
 import './App.css';
 import { useMemo, useState } from 'react';
 
 function App() {
   const [diffMode, setDiffMode] = useState('daily');
   const { loading, kpis, tables, metadata, error, rawRows, historyData, differences } = useFandangoData(diffMode);
+  const [isGeneratingImg, setIsGeneratingImg] = useState(false); // <--- Added loading state for generation
 
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -138,6 +140,26 @@ function App() {
   const displayedKpis = noFiltersSelected ? kpis : filteredSummary.kpis;
   const displayedTables = noFiltersSelected ? tables : filteredSummary.tables;
 
+  const handleExportImage = async () => {
+    if (isGeneratingImg) return;
+    setIsGeneratingImg(true);
+    try {
+      // Calls our new front-end canvas generator!
+      const dataUrl = await generateImageReport(kpis, tables, metadata);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `Peddi_BoxOffice_${diffMode}_report.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      console.error("Error generating image:", e);
+      alert("Failed to generate image.");
+    } finally {
+      setIsGeneratingImg(false);
+    }
+  };
+
   if (error) {
     return <div style={{ color: '#f87171', padding: '20px' }}>Error: {error}</div>;
   }
@@ -187,27 +209,18 @@ function App() {
               <button
                 type="button"
                 className="toggle-filter-btn"
-                style={{ background: '#c57e22', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={async () => {
-                  const url = 'https://raw.githubusercontent.com/ashokram004/fandango_web/master/latest_report.png';
-                  try {
-                    const res = await fetch(url, { mode: 'cors' });
-                    const blob = await res.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = blobUrl;
-                    a.download = 'latest_report.png';
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                    URL.revokeObjectURL(blobUrl);
-                  } catch (e) {
-                    console.error("Error downloading image:", e);
-                    window.open(url, '_blank', 'noopener,noreferrer');
-                  }
+                style={{ 
+                  background: isGeneratingImg ? '#888' : '#c57e22', 
+                  color: '#fff', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  cursor: isGeneratingImg ? 'not-allowed' : 'pointer'
                 }}
+                onClick={handleExportImage}
+                disabled={isGeneratingImg}
               >
-                Export Image
+                {isGeneratingImg ? 'Generating...' : 'Export Image'}
               </button>
               <button
                 onClick={() => setShowFilters((v) => !v)}

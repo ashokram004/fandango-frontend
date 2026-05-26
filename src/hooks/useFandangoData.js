@@ -386,7 +386,6 @@ export const useFandangoData = (diffMode = 'daily') => {
 
       return {
         t_id: row.t_id || '',
-        // FIX: Appended array index '_idx' to guarantee a 100% unique React key even for DB duplicates
         id: `${row.t_id || ''}_${row.time || ''}_${format || ''}_${language || ''}_${theater || ''}_${idx}`,
         state,
         theater,
@@ -405,7 +404,9 @@ export const useFandangoData = (diffMode = 'daily') => {
         has_snapshot: !!sRow,
         s_gross,
         s_booked,
-        s_total
+        s_total,
+        // ✅ BUG FIXED: Explicitly added seat_map_urls mapping here so frontend can access it
+        seat_map_urls: row.seat_map_urls || '' 
       };
     });
 
