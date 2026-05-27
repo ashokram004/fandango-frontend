@@ -6,6 +6,7 @@ import { HistoryTable } from './components/HistoryTable';
 import { FilterPanel } from './components/FilterPanel';
 import { DifferenceTable } from './components/DifferenceTable';
 import { generateImageReport } from './utils/imageGenerator'; // <--- NEW IMPORT
+import { PacingChart } from './components/PacingChart';
 import './App.css';
 import { useMemo, useState } from 'react';
 
@@ -271,6 +272,13 @@ function App() {
         {historyData && historyData.length > 0 && (
           <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
             <HistoryTable data={historyData} />
+          </div>
+        )}
+
+        {/* --- NEW GRAPH SECTION --- */}
+        {historyData && historyData.length > 0 && diffMode === 'daily' && (
+          <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
+            <PacingChart historyData={historyData} />
           </div>
         )}
 
