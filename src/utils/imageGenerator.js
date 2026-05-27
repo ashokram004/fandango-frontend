@@ -83,7 +83,6 @@ export const generateImageReport = async (kpis, tables, metadata) => {
     ctx.font = '28px Arial, Helvetica, sans-serif';
     ctx.fillText(`US Advance Sales • Show Date: ${metadata.showDate}`, PAD, PAD + 85);
 
-    // Replaced dynamic Date with metadata timestamps
     ctx.textAlign = 'right';
     ctx.fillStyle = TEXT;
     ctx.fillText(`Last update: ${metadata.lastUpdated} IST`, W - PAD, PAD + 20);
@@ -133,8 +132,10 @@ export const generateImageReport = async (kpis, tables, metadata) => {
       ctx.fillText(val, x + 40, kpi_y + 75);
     };
 
-    // Filter out 0 deltas
-    const d_gross_str = kpis.totalGross.delta === 0 ? "" : (kpis.totalGross.delta > 0 ? `+${formatCurrency(kpis.totalGross.delta)}` : `-${formatCurrency(Math.abs(kpis.totalGross.delta))}`);
+    // Filter out 0 deltas using rounded logic to avoid floating point anomalies
+    const roundedGrossDelta = Math.round(kpis.totalGross.delta || 0);
+    const d_gross_str = roundedGrossDelta === 0 ? "" : (roundedGrossDelta > 0 ? `+${formatCurrency(kpis.totalGross.delta)}` : `-${formatCurrency(Math.abs(kpis.totalGross.delta))}`);
+    
     const d_tix_str = kpis.totalBooked.delta === 0 ? "" : (kpis.totalBooked.delta > 0 ? `+${kpis.totalBooked.delta.toLocaleString()}` : kpis.totalBooked.delta.toLocaleString());
     const d_venues_str = kpis.totalVenues.delta === 0 ? "" : (kpis.totalVenues.delta > 0 ? `+${kpis.totalVenues.delta}` : `${kpis.totalVenues.delta}`);
     const d_shows_str = kpis.totalShows.delta === 0 ? "" : (kpis.totalShows.delta > 0 ? `+${kpis.totalShows.delta}` : `${kpis.totalShows.delta}`);
@@ -197,7 +198,8 @@ export const generateImageReport = async (kpis, tables, metadata) => {
       displayRows.forEach(row => {
         cols.forEach(c => {
           ctx.textAlign = c.align;
-          const cx = c.align === 'left' ? x + c.pos : x + w - c.pos;
+          const cx = c.align === 'left' ? x + c.pos : x + w - r2_y; // Fallback math context placeholder alignment pos fix
+          const finalCx = c.align === 'left' ? x + c.pos : x + w - c.pos;
           
           let val = row[c.key];
           let color = TEXT;
@@ -208,12 +210,13 @@ export const generateImageReport = async (kpis, tables, metadata) => {
           if (c.key === 'gross') val = `$${val.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
           if (c.key === 'occ') val = `${val.toFixed(1)}%`;
           
-          // Filter out 0 deltas for tables
+          // FIX: Round the delta value first to catch decimals that round to zero
           if (c.key === 'dgross') {
-            if (row.d_gross === 0) {
+            const roundedRowDelta = Math.round(row.d_gross || 0);
+            if (roundedRowDelta === 0) {
               val = "";
             } else {
-              val = row.d_gross > 0 ? `+$${row.d_gross.toLocaleString(undefined, {maximumFractionDigits: 0})}` : `-$${Math.abs(row.d_gross).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+              val = roundedRowDelta > 0 ? `+$${roundedRowDelta.toLocaleString(undefined, {maximumFractionDigits: 0})}` : `-$${Math.abs(roundedRowDelta).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
             }
           }
 
@@ -226,14 +229,14 @@ export const generateImageReport = async (kpis, tables, metadata) => {
           } else if (c.key === 'occ') {
             color = TEXT_BRIGHT;
           } else if (c.key === 'dgross') {
-            if (val === "") color = MUTED; // Doesn't matter, won't render
+            if (val === "") color = MUTED; 
             else if (val.startsWith('+')) color = GREEN;
             else if (val.startsWith('-')) color = RED;
           }
 
           ctx.fillStyle = color;
           ctx.font = fontStr;
-          ctx.fillText(val, cx, cy);
+          ctx.fillText(val, finalCx, cy);
         });
 
         // Row border
