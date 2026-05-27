@@ -83,11 +83,12 @@ export const generateImageReport = async (kpis, tables, metadata) => {
     ctx.font = '28px Arial, Helvetica, sans-serif';
     ctx.fillText(`US Advance Sales • Show Date: ${metadata.showDate}`, PAD, PAD + 85);
 
+    // Replaced dynamic Date with metadata timestamps
     ctx.textAlign = 'right';
     ctx.fillStyle = TEXT;
-    ctx.fillText(`Report: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST`, W - PAD, PAD + 20);
+    ctx.fillText(`Last update: ${metadata.lastUpdated} IST`, W - PAD, PAD + 20);
     ctx.fillStyle = MUTED;
-    ctx.fillText(`Last tracked: ${metadata.lastUpdated} IST`, W - PAD, PAD + 65);
+    ctx.fillText(`Growth since: ${metadata.growthSince || 'N/A'} IST`, W - PAD, PAD + 65);
 
     // Separator line
     ctx.beginPath();
@@ -119,7 +120,7 @@ export const generateImageReport = async (kpis, tables, metadata) => {
       ctx.textAlign = 'right';
       ctx.font = 'bold 26px Arial, Helvetica, sans-serif';
       let color = MUTED;
-      if (isDelta) {
+      if (isDelta && subVal) {
         if (subVal.startsWith('+')) color = GREEN;
         else if (subVal.startsWith('-') && subVal !== '-') color = RED;
       }
@@ -132,13 +133,16 @@ export const generateImageReport = async (kpis, tables, metadata) => {
       ctx.fillText(val, x + 40, kpi_y + 75);
     };
 
-    const d_gross_str = kpis.totalGross.delta >= 0 ? `+${formatCurrency(kpis.totalGross.delta)}` : `-${formatCurrency(Math.abs(kpis.totalGross.delta))}`;
-    const d_tix_str = kpis.totalBooked.delta >= 0 ? `+${kpis.totalBooked.delta.toLocaleString()}` : kpis.totalBooked.delta.toLocaleString();
+    // Filter out 0 deltas
+    const d_gross_str = kpis.totalGross.delta === 0 ? "" : (kpis.totalGross.delta > 0 ? `+${formatCurrency(kpis.totalGross.delta)}` : `-${formatCurrency(Math.abs(kpis.totalGross.delta))}`);
+    const d_tix_str = kpis.totalBooked.delta === 0 ? "" : (kpis.totalBooked.delta > 0 ? `+${kpis.totalBooked.delta.toLocaleString()}` : kpis.totalBooked.delta.toLocaleString());
+    const d_venues_str = kpis.totalVenues.delta === 0 ? "" : (kpis.totalVenues.delta > 0 ? `+${kpis.totalVenues.delta}` : `${kpis.totalVenues.delta}`);
+    const d_shows_str = kpis.totalShows.delta === 0 ? "" : (kpis.totalShows.delta > 0 ? `+${kpis.totalShows.delta}` : `${kpis.totalShows.delta}`);
 
     drawKpi(0, "Total Gross", formatCurrency(kpis.totalGross.val), d_gross_str);
     drawKpi(1, "Tickets Sold", kpis.totalBooked.val.toLocaleString(), d_tix_str);
-    drawKpi(2, "Total Venues", kpis.totalVenues.val.toLocaleString(), kpis.totalVenues.delta >= 0 ? `+${kpis.totalVenues.delta}` : `${kpis.totalVenues.delta}`);
-    drawKpi(3, "Total Shows", kpis.totalShows.val.toLocaleString(), kpis.totalShows.delta >= 0 ? `+${kpis.totalShows.delta}` : `${kpis.totalShows.delta}`);
+    drawKpi(2, "Total Venues", kpis.totalVenues.val.toLocaleString(), d_venues_str);
+    drawKpi(3, "Total Shows", kpis.totalShows.val.toLocaleString(), d_shows_str);
     drawKpi(4, "Occupancy", `${kpis.occupancy.val.toFixed(1)}%`, `${kpis.occupancy.capacity?.toLocaleString() || 0} seats`, false);
 
     // --- TABLE DRAW UTILITY ---
@@ -203,8 +207,14 @@ export const generateImageReport = async (kpis, tables, metadata) => {
           if (c.key === 'shows' || c.key === 'booked') val = val.toLocaleString();
           if (c.key === 'gross') val = `$${val.toLocaleString(undefined, {maximumFractionDigits: 0})}`;
           if (c.key === 'occ') val = `${val.toFixed(1)}%`;
+          
+          // Filter out 0 deltas for tables
           if (c.key === 'dgross') {
-            val = row.d_gross >= 0 ? `+$${row.d_gross.toLocaleString(undefined, {maximumFractionDigits: 0})}` : `-$${Math.abs(row.d_gross).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+            if (row.d_gross === 0) {
+              val = "";
+            } else {
+              val = row.d_gross > 0 ? `+$${row.d_gross.toLocaleString(undefined, {maximumFractionDigits: 0})}` : `-$${Math.abs(row.d_gross).toLocaleString(undefined, {maximumFractionDigits: 0})}`;
+            }
           }
 
           if (c.key === 'name') {
@@ -216,9 +226,9 @@ export const generateImageReport = async (kpis, tables, metadata) => {
           } else if (c.key === 'occ') {
             color = TEXT_BRIGHT;
           } else if (c.key === 'dgross') {
-            if (val.startsWith('+')) color = GREEN;
-            else if (val.startsWith('-') && val !== "-$0") color = RED;
-            else color = MUTED;
+            if (val === "") color = MUTED; // Doesn't matter, won't render
+            else if (val.startsWith('+')) color = GREEN;
+            else if (val.startsWith('-')) color = RED;
           }
 
           ctx.fillStyle = color;
@@ -268,7 +278,7 @@ export const generateImageReport = async (kpis, tables, metadata) => {
     ctx.textAlign = 'center';
     ctx.fillStyle = MUTED;
     ctx.font = '28px Arial, Helvetica, sans-serif';
-    ctx.fillText(`Wknd Cinema • Data from Fandango • Generated ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' })} IST`, W / 2, footer_y + 30);
+    ctx.fillText(`Wknd Cinema • Data from Fandango • Updated ${metadata.lastUpdated} IST`, W / 2, footer_y + 30);
 
     resolve(canvas.toDataURL("image/png"));
   });
