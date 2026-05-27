@@ -85,7 +85,7 @@ export const generateImageReport = async (kpis, tables, metadata) => {
 
     ctx.textAlign = 'right';
     ctx.fillStyle = TEXT;
-    ctx.fillText(`Last update: ${metadata.lastUpdated} IST`, W - PAD, PAD + 20);
+    ctx.fillText(`Report time: ${metadata.lastUpdated} IST`, W - PAD, PAD + 20);
     ctx.fillStyle = MUTED;
     ctx.fillText(`Growth since: ${metadata.growthSince || 'N/A'} IST`, W - PAD, PAD + 65);
 
@@ -281,7 +281,7 @@ export const generateImageReport = async (kpis, tables, metadata) => {
     ctx.textAlign = 'center';
     ctx.fillStyle = MUTED;
     ctx.font = '28px Arial, Helvetica, sans-serif';
-    ctx.fillText(`Wknd Cinema • Data from Fandango • Updated ${metadata.lastUpdated} IST`, W / 2, footer_y + 30);
+    ctx.fillText(`Wknd Cinema • Data from Fandango • Generated at ${metadata.lastUpdated} IST`, W / 2, footer_y + 30);
 
     resolve(canvas.toDataURL("image/png"));
   });
