@@ -31,7 +31,7 @@ export const DifferenceTable = ({ title, data, type }) => {
               <th>Show Time</th>
               <th>Format</th>
               <th>Language</th>
-              {isShowChange && <th>Tickets/Booked</th>}
+              {isShowChange && <th>Tickets</th>}
               {isShowChange && <th>Gross</th>}
               {isTicketChange && <th>{type === 'booked' ? 'Tickets Added' : 'Tickets Cancelled'}</th>}
               {isTicketChange && <th>{type === 'booked' ? 'Gross Increase' : 'Gross Decrease'}</th>}
@@ -52,7 +52,7 @@ export const DifferenceTable = ({ title, data, type }) => {
                   {/* Columns for Added/Removed Shows */}
                   {isShowChange && (
                     <td>
-                      {formatNumber(row.total || row['Tickets'])} / {formatNumber(row.booked !== undefined ? row.booked : row['Booked'])}
+                      {formatNumber(row.booked !== undefined ? row.booked : row['Booked'])}
                     </td>
                   )}
                   {isShowChange && <td className="gross-val">{formatCurrency(row.gross !== undefined ? row.gross : row['Gross ($)'])}</td>}
