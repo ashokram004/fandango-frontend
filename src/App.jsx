@@ -40,8 +40,6 @@ function App() {
   }, [allRows, filters]);
 
   const filteredSummary = useMemo(() => {
-    const rows = filteredRows.filter((r) => !r.is_extra);
-
     const summary = {
       formats: {},
       languages: {},
@@ -61,8 +59,9 @@ function App() {
     let sTotalBooked = 0;
     const sVenues = new Set();
     let sShows = 0;
+    let validShows = 0;
 
-    rows.forEach((r) => {
+    filteredRows.forEach((r) => {
       const gross = Number(r.gross || 0);
       const tickets = Number(r.total || 0);
       const booked = Number(r.booked || 0);
@@ -79,39 +78,62 @@ function App() {
       sTotalTickets += s_tickets;
       sTotalBooked += s_booked;
 
-      if (r.t_id) venues.add(r.t_id);
-      
-      if (r.has_snapshot) {
-         sShows += 1;
-         if (r.t_id) sVenues.add(r.t_id);
-      }
+      const isExtra = r.is_extra || r.t_id === 'EXTRA';
 
-      const addItem = (dict, key, label) => {
-        if (!dict[key]) {
-          dict[key] = { name: label, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0, occ: 0, id: key, s_gross: 0, s_booked: 0, s_tickets: 0 };
+      if (!isExtra) {
+        validShows += 1;
+        if (r.t_id) venues.add(r.t_id);
+        
+        if (r.has_snapshot) {
+           sShows += 1;
+           if (r.t_id) sVenues.add(r.t_id);
         }
-        dict[key].shows += 1;
-        dict[key].tickets += tickets;
-        dict[key].booked += booked;
-        dict[key].gross += gross;
-        
-        dict[key].s_gross += s_gross;
-        dict[key].s_booked += s_booked;
-        dict[key].s_tickets += s_tickets;
 
-        dict[key].occ = dict[key].tickets > 0 ? (dict[key].booked / dict[key].tickets) * 100 : 0;
-        
-        dict[key].d_gross = dict[key].gross - dict[key].s_gross;
-        dict[key].d_booked = dict[key].booked - dict[key].s_booked;
-        dict[key].d_tickets = dict[key].tickets - dict[key].s_tickets;
-      };
+        const addItem = (dict, key, label) => {
+          if (!dict[key]) {
+            dict[key] = { name: label, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0, occ: 0, id: key, s_gross: 0, s_booked: 0, s_tickets: 0 };
+          }
+          dict[key].shows += 1;
+          dict[key].tickets += tickets;
+          dict[key].booked += booked;
+          dict[key].gross += gross;
+          
+          dict[key].s_gross += s_gross;
+          dict[key].s_booked += s_booked;
+          dict[key].s_tickets += s_tickets;
 
-      addItem(summary.formats, r.format || 'Unknown', r.format || 'Unknown');
-      addItem(summary.languages, r.language || 'Unknown', r.language || 'Unknown');
-      addItem(summary.states, r.state || 'Unknown', r.state || 'Unknown');
-      addItem(summary.theaters, r.t_id || r.theater || 'Unknown', r.theater || 'Unknown');
-      addItem(summary.chains, r.chain || 'Unknown', r.chain || 'Unknown');
-      addItem(summary.timeCats, r.timeCat || 'Unknown', r.timeCat || 'Unknown');
+          dict[key].occ = dict[key].tickets > 0 ? (dict[key].booked / dict[key].tickets) * 100 : 0;
+          
+          dict[key].d_gross = dict[key].gross - dict[key].s_gross;
+          dict[key].d_booked = dict[key].booked - dict[key].s_booked;
+          dict[key].d_tickets = dict[key].tickets - dict[key].s_tickets;
+        };
+
+        addItem(summary.formats, r.format || 'Unknown', r.format || 'Unknown');
+        addItem(summary.languages, r.language || 'Unknown', r.language || 'Unknown');
+        addItem(summary.states, r.state || 'Unknown', r.state || 'Unknown');
+        addItem(summary.theaters, r.t_id || r.theater || 'Unknown', r.theater || 'Unknown');
+        addItem(summary.chains, r.chain || 'Unknown', r.chain || 'Unknown');
+        addItem(summary.timeCats, r.timeCat || 'Unknown', r.timeCat || 'Unknown');
+      } else {
+        const lang = 'Telugu';
+        if (!summary.languages[lang]) {
+          summary.languages[lang] = { name: lang, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0, occ: 0, id: lang, s_gross: 0, s_booked: 0, s_tickets: 0 };
+        }
+        summary.languages[lang].tickets += tickets;
+        summary.languages[lang].booked += booked;
+        summary.languages[lang].gross += gross;
+        
+        summary.languages[lang].s_gross += s_gross;
+        summary.languages[lang].s_booked += s_booked;
+        summary.languages[lang].s_tickets += s_tickets;
+
+        summary.languages[lang].occ = summary.languages[lang].tickets > 0 ? (summary.languages[lang].booked / summary.languages[lang].tickets) * 100 : 0;
+        
+        summary.languages[lang].d_gross = summary.languages[lang].gross - summary.languages[lang].s_gross;
+        summary.languages[lang].d_booked = summary.languages[lang].booked - summary.languages[lang].s_booked;
+        summary.languages[lang].d_tickets = summary.languages[lang].tickets - summary.languages[lang].s_tickets;
+      }
     });
 
     const buildList = (dict) => Object.values(dict).sort((a, b) => b.gross - a.gross);
@@ -122,7 +144,7 @@ function App() {
         totalTickets: { val: totalTickets, delta: totalTickets - sTotalTickets },
         totalBooked: { val: totalBooked, delta: totalBooked - sTotalBooked },
         totalVenues: { val: venues.size, delta: venues.size - sVenues.size },
-        totalShows: { val: rows.length, delta: rows.length - sShows },
+        totalShows: { val: validShows, delta: validShows - sShows },
         occupancy: { val: totalTickets > 0 ? (totalBooked / totalTickets) * 100 : 0 }
       },
       tables: {
@@ -276,7 +298,7 @@ function App() {
         )}
 
         {/* --- NEW GRAPH SECTION --- */}
-        {historyData && historyData.length > 0 && diffMode === 'daily' && (
+        {historyData && historyData.length > 0 && (
           <div className="dashboard-row" style={{ gridTemplateColumns: '1fr' }}>
             <PacingChart historyData={historyData} />
           </div>

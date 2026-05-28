@@ -318,6 +318,14 @@ export const useFandangoData = (diffMode = 'daily') => {
           inc(summary.theaters, tId, theaterName);
           inc(summary.chains, chain);
           inc(summary.timeCats, timeCat);
+        } else {
+          const lang = 'Telugu';
+          if (!summary.languages[lang]) {
+            summary.languages[lang] = { id: lang, name: lang, shows: 0, tickets: 0, booked: 0, gross: 0, d_booked: 0, d_gross: 0, d_tickets: 0 };
+          }
+          summary.languages[lang].tickets += tickets;
+          summary.languages[lang].booked += booked;
+          summary.languages[lang].gross += gross;
         }
       });
 
