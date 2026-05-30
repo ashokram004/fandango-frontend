@@ -2,10 +2,7 @@ import { useMemo, useState } from 'react';
 
 const formatCurrency = (val) => {
   if (!Number.isFinite(Number(val))) return '$0';
-  const n = Number(val);
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
-  return `$${n.toFixed(2)}`;
+  return `$${Number(val).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
 const statusClass = (status) => {

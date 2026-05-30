@@ -11,9 +11,7 @@ const parseNumber = (val) => {
 const formatCurrency = (val) => {
   const n = parseNumber(val);
   if (n === 0) return '$0';
-  if (n >= 1000000) return `$${(n / 1000000).toFixed(2)}M`;
-  if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
-  return `$${n.toFixed(2)}`;
+  return `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 };
 
 const getOccupancyColor = (occ) => {

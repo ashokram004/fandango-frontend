@@ -13,9 +13,12 @@ export const generateImageReport = async (kpis, tables, metadata) => {
     const ORANGE_STRIP = 'rgba(245, 131, 32, 0.78)';
 
     const formatCurrency = (val) => {
-      if (val >= 1000000) return `$${(val / 1000000).toFixed(2)}M`;
-      if (val >= 1000) return `$${(val / 1000).toFixed(1)}K`;
-      return `$${val.toFixed(2)}`;
+      if (!Number.isFinite(Number(val))) return '$0';
+
+      return `$${Number(val).toLocaleString('en-US', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      })}`;
     };
 
     // Calculate dynamic heights
@@ -222,7 +225,7 @@ export const generateImageReport = async (kpis, tables, metadata) => {
 
           if (c.key === 'name') {
             color = isFmtLang ? ACCENT : TEXT_BRIGHT;
-            if (val.length > 32) val = val.substring(0, 29) + "...";
+            if (val.length > 32) val = val.substring(0, 35) + "...";
             if (val.includes('Remaining')) color = MUTED;
           } else if (c.key === 'gross') {
             color = TEXT_BRIGHT;
