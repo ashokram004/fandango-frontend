@@ -3,7 +3,7 @@ import { ref, onValue } from 'firebase/database';
 import { database } from '../firebaseConfig';
 
 const MOVIE_SLUG = 'peddi-2026';
-const SHOW_DATE = '2026-06-06';
+const SHOW_DATE = '2026-06-07';
 
 const formatUtcToIst = (value) => {
   try {
